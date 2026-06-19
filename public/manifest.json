@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "BrowserShell",
+  "version": "0.1.0",
+  "description": "A shell for your browser — tabs, bookmarks, history, and AI as commands.",
+  "permissions": [
+    "sidePanel",
+    "tabs",
+    "activeTab",
+    "storage",
+    "bookmarks",
+    "history",
+    "scripting"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Open BrowserShell",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "src/options/index.html",
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Open or focus BrowserShell side panel"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

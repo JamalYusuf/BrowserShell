@@ -1,0 +1,208 @@
+import type { ChromeAPI } from '@/chrome/api';
+import type { ExecutionContext } from '@/shared/types';
+import type { VirtualFileSystem } from '@/vfs';
+import { basename, dirname, normalizePath } from '@/vfs/path';
+import { getActiveWindowId, getWindowTabs } from '@/commands/tab-utils';
+import { getRegistry } from './registry';
+
+export interface CompletionContext {
+  input: string;
+  vfs: VirtualFileSystem;
+  chrome: ChromeAPI;
+  env: Record<string, string>;
+  cwd: string;
+  aliases: Record<string, string>;
+}
+
+const SUBCOMMANDS: Record<string, string[]> = {
+  tab: ['new', 'close', 'switch', 'next', 'prev', 'pin', 'unpin', 'duplicate'],
+  bookmark: ['add', 'search', 'open'],
+  history: ['recent', 'search'],
+  ai: ['summarize', 'explain'],
+  config: ['list', 'get', 'set'],
+};
+
+const PATH_COMMANDS = new Set(['ls', 'cd', 'cat', 'open', 'close', 'source', 'grep']);
+
+const TAB_ARG_SUBS = new Set(['switch', 'close', 'pin', 'unpin', 'duplicate']);
+
+export function longestCommonPrefix(strings: string[]): string {
+  if (!strings.length) return '';
+  let prefix = strings[0]!;
+  for (const s of strings.slice(1)) {
+    while (!s.startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+      if (!prefix) return '';
+    }
+  }
+  return prefix;
+}
+
+/** Parse the active pipeline segment and token being completed. */
+export function parseCompletionInput(input: string): {
+  segment: string;
+  words: string[];
+  currentWord: string;
+  wordIndex: number;
+  commandName: string;
+  completingCommand: boolean;
+} {
+  const segment = input.split('|').pop() ?? input;
+  const trimmed = segment.replace(/^\s+/, '');
+  const leadingSpaces = segment.length - trimmed.length;
+
+  const words: string[] = [];
+  let current = '';
+  let inQuote: '"' | "'" | null = null;
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i]!;
+    if (inQuote) {
+      if (ch === inQuote) inQuote = null;
+      else current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      inQuote = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (current) {
+        words.push(current);
+        current = '';
+      }
+      continue;
+    }
+    current += ch;
+  }
+
+  const endsWithSpace = /\s$/.test(trimmed);
+  if (current) words.push(current);
+
+  const wordIndex = endsWithSpace ? words.length : Math.max(0, words.length - 1);
+  const currentWord = endsWithSpace ? '' : words[wordIndex] ?? '';
+  const commandName = words[0] ?? '';
+  const completingCommand = wordIndex === 0;
+
+  return {
+    segment: ' '.repeat(leadingSpaces) + trimmed,
+    words,
+    currentWord,
+    wordIndex,
+    commandName,
+    completingCommand,
+  };
+}
+
+export async function completeVfsPath(
+  partial: string,
+  cwd: string,
+  vfs: VirtualFileSystem
+): Promise<string[]> {
+  const raw = partial || '';
+  const isAbs = raw.startsWith('/');
+  const full = isAbs ? raw : raw ? normalizePath(raw, cwd) : cwd;
+  const endsWithSlash = full.endsWith('/');
+  const dir = endsWithSlash ? normalizePath(full) : dirname(normalizePath(full));
+  const prefix = endsWithSlash ? '' : basename(full);
+
+  try {
+    const entries = await vfs.readdir(dir);
+    return entries
+      .filter((e) => !prefix || e.name.startsWith(prefix))
+      .map((e) => {
+        const name = e.type === 'directory' ? `${e.name}/` : e.name;
+        if (isAbs || dir !== cwd) {
+          const base = endsWithSlash ? dir : dir === '/' ? '' : dir;
+          return `${base}/${name}`.replace(/\/+/g, '/');
+        }
+        return name;
+      });
+  } catch {
+    return [];
+  }
+}
+
+export async function getShellCompletions(ctx: CompletionContext): Promise<string[]> {
+  const { words, currentWord, wordIndex, commandName, completingCommand } = parseCompletionInput(ctx.input);
+  const registry = getRegistry();
+
+  if (completingCommand) {
+    const prefix = currentWord.toLowerCase();
+    const names = registry.getNames();
+    const aliasNames = Object.keys(ctx.aliases);
+    const all = [...new Set([...names, ...aliasNames])];
+    return all.filter((n) => n.toLowerCase().startsWith(prefix)).sort();
+  }
+
+  const resolved = ctx.aliases[commandName]?.split(/\s+/)[0] ?? commandName;
+  const cmd = registry.resolve(resolved);
+  const sub = words[1];
+
+  if (SUBCOMMANDS[resolved]) {
+    if (wordIndex === 1) {
+      return SUBCOMMANDS[resolved].filter((s) => s.startsWith(currentWord));
+    }
+    if (resolved === 'tab' && sub && TAB_ARG_SUBS.has(sub) && wordIndex === 2) {
+      const tabs = await ctx.chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      const winId = tabs[0]?.windowId ?? (await getActiveWindowId({
+        chrome: ctx.chrome,
+        getActiveWindowId: async () => 0,
+      } as ExecutionContext));
+      const windowTabs = await getWindowTabs(ctx.chrome, winId);
+      return windowTabs.map((_, i) => String(i + 1)).filter((n) => n.startsWith(currentWord));
+    }
+  }
+
+  if (PATH_COMMANDS.has(resolved)) {
+    if (wordIndex === 1 || (resolved === 'grep' && wordIndex === 2 && words.length > 2)) {
+      const partial = currentWord;
+      if (partial.startsWith('-')) return [];
+      return completeVfsPath(partial, ctx.cwd, ctx.vfs);
+    }
+  }
+
+  if (cmd?.getCompletions) {
+    const execCtx: ExecutionContext = {
+      vfs: ctx.vfs,
+      chrome: ctx.chrome,
+      env: ctx.env,
+      cwd: ctx.cwd,
+      aliases: ctx.aliases,
+      stdin: '',
+      piped: false,
+      cols: 80,
+      writeStdout: () => {},
+      writeStderr: () => {},
+      setCwd: () => {},
+      setEnv: () => {},
+      setAlias: () => {},
+    };
+    const argPartial = currentWord;
+    const synthetic = [...words.slice(0, wordIndex), argPartial].join(' ');
+    return cmd.getCompletions(synthetic, execCtx);
+  }
+
+  return [];
+}
+
+export function applyCompletion(input: string, match: string): string {
+  const pipePrefix = input.includes('|') ? input.split('|').slice(0, -1).join('|') + '|' : '';
+  const segment = input.split('|').pop() ?? input;
+  const leading = segment.match(/^\s*/)?.[0] ?? '';
+  const trimmed = segment.slice(leading.length);
+
+  const endsWithSpace = /\s$/.test(trimmed);
+  const parts = trimmed.split(/\s+/).filter((p, i, arr) => p || i < arr.length - 1);
+
+  if (endsWithSpace || parts.length === 0) {
+    parts.push(match);
+  } else {
+    parts[parts.length - 1] = match;
+  }
+
+  const isCommand = parts.length === 1;
+  const completed = parts.join(' ');
+  const suffix = isCommand || match.endsWith('/') ? (match.endsWith('/') ? '' : ' ') : ' ';
+  return pipePrefix + leading + completed + suffix;
+}

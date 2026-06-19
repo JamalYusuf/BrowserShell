@@ -1,0 +1,5 @@
+node_modules/
+dist/
+docs/COMMANDS.md
+*.local
+.DS_Store
