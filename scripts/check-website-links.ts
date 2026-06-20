@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 
 const PUBLIC_DIR = resolve('website/public');
-const BASE_PATH = '/browsershell';
+const BASE_PATH = '/BrowserShell';
 
 function walkHtml(dir: string): string[] {
   const files: string[] = [];

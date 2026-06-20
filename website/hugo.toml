@@ -1,4 +1,4 @@
-baseURL = 'https://jamalyusuf.github.io/browsershell/'
+baseURL = 'https://jamalyusuf.github.io/BrowserShell/'
 languageCode = 'en-us'
 title = 'BrowserShell'
 theme = 'browsershell'

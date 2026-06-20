@@ -6,7 +6,7 @@
 
 **A shell for your browser** — tabs, bookmarks, history, downloads, and page actions as terminal commands.
 
-**Website:** [jamalyusuf.github.io/browsershell](https://jamalyusuf.github.io/browsershell/)
+**Website:** [jamalyusuf.github.io/BrowserShell](https://jamalyusuf.github.io/BrowserShell/)
 
 BrowserShell is a Chrome extension that overlays a Quake-style terminal on any page. Instead of hunting through menus and settings, you run keyboard-driven commands to manage browser state: switch tabs, search history, inspect the current page, clear site data, and more.
 

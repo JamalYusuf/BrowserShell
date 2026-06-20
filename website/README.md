@@ -6,7 +6,7 @@ Hugo-powered documentation and landing site for GitHub Pages.
 
 ```bash
 # From repo root
-npm run website          # dev server at http://localhost:1313/browsershell/
+npm run website          # dev server at http://localhost:1313/BrowserShell/
 npm run website:build    # production build → website/public/
 npm run website:check-links  # verify internal links after build
 ```
@@ -33,8 +33,8 @@ Pushes to `main` trigger `.github/workflows/pages.yml`, which:
 
 Enable GitHub Pages in repo settings: **Source → GitHub Actions**.
 
-Site URL: `https://jamalyusuf.github.io/browsershell/`
+Site URL: `https://jamalyusuf.github.io/BrowserShell/`
 
 ## Link paths
 
-GitHub Pages serves this site under `/browsershell/`. Markdown links like `[Guide](/docs/foo/)` are rewritten at build time via `render-link.html`. Template links should use `{{ partial "site-url.html" "docs/foo/" }}` (no leading slash — Hugo treats `/paths` as host-root).
+GitHub Pages serves this site under `/BrowserShell/`. Markdown links like `[Guide](/docs/foo/)` are rewritten at build time via `render-link.html`. Template links should use `{{ partial "site-url.html" "docs/foo/" }}` (no leading slash — Hugo treats `/paths` as host-root).

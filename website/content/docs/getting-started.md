@@ -70,7 +70,7 @@ Open the options page via the extension icon, or run:
 options
 ```
 
-Aliases: `settings`, `prefs`. Documentation: [jamalyusuf.github.io/browsershell](https://jamalyusuf.github.io/browsershell/)
+Aliases: `settings`, `prefs`. Documentation: [jamalyusuf.github.io/BrowserShell](https://jamalyusuf.github.io/BrowserShell/)
 
 Customize theme, font, prompt template, toggle key, forget presets, and aliases.
 

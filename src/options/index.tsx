@@ -139,7 +139,7 @@ function App() {
           </p>
           <p>
             Run <kbd>options</kbd> in the terminal to reopen settings.{' '}
-            <a href="https://jamalyusuf.github.io/browsershell/" target="_blank" rel="noopener noreferrer">
+            <a href="https://jamalyusuf.github.io/BrowserShell/" target="_blank" rel="noopener noreferrer">
               Docs &amp; help
             </a>
           </p>
