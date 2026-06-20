@@ -11,8 +11,9 @@
 BrowserShell is a Chrome extension that overlays a Quake-style terminal on any page. Instead of hunting through menus and settings, you run keyboard-driven commands to manage browser state: switch tabs, search history, inspect the current page, clear site data, and more.
 
 Inspired by Bash, Raycast, and classic terminal drop-down consoles.
-
+![BrowserShell demo](infographic.png)
 ![BrowserShell demo](demo.gif)
+
 
 ---
 
