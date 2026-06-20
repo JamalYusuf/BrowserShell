@@ -1,5 +1,7 @@
 /** Thin, mockable wrapper over chrome.* APIs. */
 
+import { PAGE_SCRIPT_REGISTRY } from '@/commands/shared/page-script-registry';
+
 export interface TabInfo {
   id: number;
   title: string;
@@ -7,6 +9,7 @@ export interface TabInfo {
   active: boolean;
   pinned: boolean;
   muted?: boolean;
+  audible?: boolean;
   windowId: number;
   index: number;
 }
@@ -36,6 +39,57 @@ export interface HistoryItem {
   visitCount: number;
 }
 
+export interface DownloadInfo {
+  id: number;
+  filename: string;
+  url: string;
+  state: string;
+  bytesReceived: number;
+  totalBytes: number;
+  startTime: number;
+  exists: boolean;
+}
+
+export interface CookieDetails {
+  name: string;
+  domain: string;
+  path: string;
+  secure: boolean;
+  httpOnly: boolean;
+  session: boolean;
+}
+
+export interface ExtensionInfo {
+  id: string;
+  name: string;
+  version: string;
+  enabled: boolean;
+  type: string;
+  description?: string;
+  homePageUrl?: string;
+  optionsUrl?: string;
+}
+
+export interface BrowsingDataTypes {
+  cache?: boolean;
+  cacheStorage?: boolean;
+  cookies?: boolean;
+  downloads?: boolean;
+  fileSystems?: boolean;
+  formData?: boolean;
+  history?: boolean;
+  indexedDB?: boolean;
+  localStorage?: boolean;
+  passwords?: boolean;
+  serviceWorkers?: boolean;
+}
+
+export interface RecentlyClosedEntry {
+  sessionId: string;
+  tab?: { title: string; url?: string };
+  window?: { tabs?: { title?: string; url?: string; active?: boolean }[] };
+}
+
 export interface ChromeAPI {
   windows: {
     query(query: chrome.windows.QueryOptions): Promise<WindowInfo[]>;
@@ -52,9 +106,13 @@ export interface ChromeAPI {
     update(tabId: number, props: chrome.tabs.UpdateProperties): Promise<TabInfo | undefined>;
     duplicate(tabId: number): Promise<TabInfo | undefined>;
     move(tabId: number, props: { windowId: number; index?: number }): Promise<TabInfo | undefined>;
-    reload(tabId: number): Promise<void>;
+    reload(tabId: number, options?: { bypassCache?: boolean }): Promise<void>;
+    discard(tabId: number): Promise<void>;
     goBack(tabId: number): Promise<void>;
     goForward(tabId: number): Promise<void>;
+    getZoom(tabId: number): Promise<number>;
+    setZoom(tabId: number, zoomFactor: number): Promise<void>;
+    captureVisibleTab(windowId?: number): Promise<string>;
   };
   bookmarks: {
     getTree(): Promise<BookmarkNode[]>;
@@ -64,10 +122,51 @@ export interface ChromeAPI {
     get(id: string): Promise<BookmarkNode[]>;
   };
   history: {
-    search(query: { text: string; maxResults?: number; startTime?: number }): Promise<HistoryItem[]>;
+    search(query: { text: string; maxResults?: number; startTime?: number; endTime?: number }): Promise<HistoryItem[]>;
+    deleteUrl(url: string): Promise<void>;
+    deleteRange(range: { startTime: number; endTime: number }): Promise<void>;
+  };
+  browsingData: {
+    remove(
+      options: { origins?: string[]; since?: number },
+      dataToRemove: BrowsingDataTypes
+    ): Promise<void>;
+  };
+  downloads: {
+    search(query: chrome.downloads.DownloadQuery): Promise<DownloadInfo[]>;
+    open(id: number): Promise<void>;
+    show(id: number): Promise<void>;
+    erase(query: chrome.downloads.DownloadQuery): Promise<number[]>;
+    removeFile(id: number): Promise<void>;
+    showDefaultFolder(): Promise<void>;
+  };
+  cookies: {
+    getAll(details: { domain?: string; url?: string }): Promise<CookieDetails[]>;
+  };
+  management: {
+    getAll(): Promise<ExtensionInfo[]>;
+    setEnabled(id: string, enabled: boolean): Promise<void>;
+    openOptionsPage(id: string): Promise<void>;
+  };
+  sessions: {
+    getRecentlyClosed(maxResults?: number | boolean): Promise<RecentlyClosedEntry[]>;
+    restore(sessionId: string): Promise<RecentlyClosedEntry | undefined>;
+  };
+  contentSettings: {
+    get(
+      details: { primaryUrl?: string; resourceIdentifier?: { id: string }; incognito?: boolean },
+      name: string
+    ): Promise<{ setting: string }>;
+    set(
+      details: { primaryUrl?: string; resourceIdentifier?: { id: string }; incognito?: boolean },
+      name: string,
+      value: string
+    ): Promise<void>;
+    clear(details: { scope?: string }, name: string): Promise<void>;
   };
   scripting: {
-    executeScript(tabId: number, func: () => string): Promise<string>;
+    executeScript<R>(tabId: number, func: (...args: unknown[]) => R, ...args: unknown[]): Promise<R>;
+    executePageScript<R>(tabId: number, scriptName: string, args: unknown[]): Promise<R | undefined>;
   };
   ai?: {
     summarizer?: {
@@ -99,6 +198,7 @@ function mapTab(tab: chrome.tabs.Tab): TabInfo {
     active: tab.active ?? false,
     pinned: tab.pinned ?? false,
     muted: tab.mutedInfo?.muted,
+    audible: tab.audible,
     windowId: tab.windowId!,
     index: tab.index ?? 0,
   };
@@ -132,6 +232,43 @@ function mapHistory(item: chrome.history.HistoryItem): HistoryItem {
     title: item.title || item.url!,
     lastVisitTime: item.lastVisitTime ?? 0,
     visitCount: item.visitCount ?? 0,
+  };
+}
+
+async function invokeDownloadsAction(action: 'open' | 'show', id: number): Promise<void> {
+  try {
+    const res = (await chrome.runtime.sendMessage({ type: 'downloads-action', action, id })) as
+      | { ok?: boolean; error?: string }
+      | undefined;
+    if (res?.ok) return;
+    if (res?.error) throw new Error(res.error);
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('Receiving end does not exist')) {
+      // Tests or missing background — fall through to direct call
+    } else if (e instanceof Error && !e.message.includes('Could not establish connection')) {
+      throw e;
+    }
+  }
+
+  if (action === 'open') {
+    chrome.downloads.open(id);
+  } else {
+    chrome.downloads.show(id);
+  }
+  const err = chrome.runtime.lastError;
+  if (err) throw new Error(err.message);
+}
+
+function mapDownload(item: chrome.downloads.DownloadItem): DownloadInfo {
+  return {
+    id: item.id,
+    filename: item.filename || item.url || '(unknown)',
+    url: item.url || '',
+    state: item.state || 'unknown',
+    bytesReceived: item.bytesReceived ?? 0,
+    totalBytes: item.totalBytes ?? 0,
+    startTime: item.startTime ? new Date(item.startTime).getTime() : 0,
+    exists: item.exists ?? false,
   };
 }
 
@@ -191,14 +328,27 @@ export function createChromeAPI(): ChromeAPI {
         const moved = Array.isArray(tab) ? tab[0] : tab;
         return moved ? mapTab(moved) : undefined;
       },
-      reload: async (tabId) => {
-        await chrome.tabs.reload(tabId);
+      reload: async (tabId, options) => {
+        await chrome.tabs.reload(tabId, options?.bypassCache ? { bypassCache: true } : undefined);
+      },
+      discard: async (tabId) => {
+        await chrome.tabs.discard(tabId);
       },
       goBack: async (tabId) => {
         await chrome.tabs.goBack(tabId);
       },
       goForward: async (tabId) => {
         await chrome.tabs.goForward(tabId);
+      },
+      getZoom: async (tabId) => chrome.tabs.getZoom(tabId),
+      setZoom: async (tabId, zoomFactor) => {
+        await chrome.tabs.setZoom(tabId, zoomFactor);
+      },
+      captureVisibleTab: async (windowId) => {
+        if (windowId !== undefined) {
+          return chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+        }
+        return chrome.tabs.captureVisibleTab({ format: 'png' });
       },
     },
     bookmarks: {
@@ -222,14 +372,165 @@ export function createChromeAPI(): ChromeAPI {
         const items = await chrome.history.search(query);
         return items.map(mapHistory);
       },
+      deleteUrl: (url) => chrome.history.deleteUrl({ url }),
+      deleteRange: (range) => chrome.history.deleteRange(range),
+    },
+    browsingData: {
+      remove: (options, dataToRemove) => chrome.browsingData.remove(options, dataToRemove),
+    },
+    downloads: {
+      search: async (query) => {
+        const items = await chrome.downloads.search(query);
+        return items.map(mapDownload);
+      },
+      open: (id) => invokeDownloadsAction('open', id),
+      show: (id) => invokeDownloadsAction('show', id),
+      erase: (query) => chrome.downloads.erase(query),
+      removeFile: (id) => chrome.downloads.removeFile(id),
+      showDefaultFolder: () => new Promise((resolve) => {
+        chrome.downloads.showDefaultFolder();
+        resolve();
+      }),
+    },
+    cookies: {
+      getAll: async (details) => {
+        const items = await chrome.cookies.getAll(details);
+        return items.map((c) => ({
+          name: c.name,
+          domain: c.domain,
+          path: c.path,
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+          session: c.session,
+        }));
+      },
+    },
+    sessions: {
+      getRecentlyClosed: async (maxResults) => {
+        const sessions = await chrome.sessions.getRecentlyClosed(
+          typeof maxResults === 'number' ? { maxResults } : undefined
+        );
+        return sessions.map((s) => {
+          const entry = s as chrome.sessions.Session & { sessionId?: string };
+          return {
+            sessionId: entry.sessionId ?? '',
+            tab: entry.tab ? { title: entry.tab.title ?? '', url: entry.tab.url } : undefined,
+            window: entry.window
+              ? {
+                  tabs: entry.window.tabs?.map((t) => ({
+                    title: t.title,
+                    url: t.url,
+                    active: t.active,
+                  })),
+                }
+              : undefined,
+          };
+        });
+      },
+      restore: async (sessionId) => {
+        const restored = await chrome.sessions.restore(sessionId);
+        if (!restored) return undefined;
+        return {
+          sessionId,
+          tab: restored.tab ? { title: restored.tab.title ?? '', url: restored.tab.url } : undefined,
+        };
+      },
+    },
+    contentSettings: {
+      get: (details, name) =>
+        new Promise((resolve) => {
+          const api = (chrome.contentSettings as unknown as Record<string, {
+            get: (d: object, cb: (r: { setting?: string }) => void) => void;
+          }>)[name];
+          if (!api) {
+            resolve({ setting: 'default' });
+            return;
+          }
+          api.get(details, (result) => resolve({ setting: String(result.setting ?? 'default') }));
+        }),
+      set: (details, name, value) =>
+        new Promise((resolve) => {
+          const api = (chrome.contentSettings as unknown as Record<string, {
+            set: (d: object, cb?: () => void) => void;
+          }>)[name];
+          if (!api) {
+            resolve();
+            return;
+          }
+          api.set({ ...details, setting: value }, () => resolve());
+        }),
+      clear: (details, name) =>
+        new Promise((resolve) => {
+          const api = (chrome.contentSettings as unknown as Record<string, {
+            clear: (d: object, cb?: () => void) => void;
+          }>)[name];
+          if (!api) {
+            resolve();
+            return;
+          }
+          api.clear(details, () => resolve());
+        }),
+    },
+    management: {
+      getAll: async () => {
+        const items = await chrome.management.getAll();
+        return items.map((ext) => ({
+          id: ext.id,
+          name: ext.name,
+          version: ext.version,
+          enabled: ext.enabled,
+          type: ext.type,
+          description: ext.description,
+          homePageUrl: ext.homepageUrl,
+          optionsUrl: ext.optionsUrl,
+        }));
+      },
+      setEnabled: (id, enabled) => chrome.management.setEnabled(id, enabled),
+      openOptionsPage: (id) => new Promise((resolve) => {
+        const mgmt = chrome.management as typeof chrome.management & {
+          openOptionsPage?: (extensionId: string, callback?: () => void) => void;
+        };
+        if (mgmt.openOptionsPage) {
+          mgmt.openOptionsPage(id, () => resolve());
+        } else {
+          resolve();
+        }
+      }),
     },
     scripting: {
-      executeScript: async (tabId, func) => {
+      executeScript: async (tabId, func, ...args) => {
         const results = await chrome.scripting.executeScript({
           target: { tabId },
-          func,
+          world: 'MAIN',
+          func: func as (...a: unknown[]) => unknown,
+          args,
         });
-        return (results[0]?.result as string) ?? '';
+        return results[0]?.result as never;
+      },
+      executePageScript: async (tabId, scriptName, args) => {
+        const check = await chrome.scripting.executeScript({
+          target: { tabId },
+          world: 'MAIN',
+          func: () => typeof (globalThis as { __bsPage_dispatch?: unknown }).__bsPage_dispatch === 'function',
+        });
+        if (!check[0]?.result) {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['page/inject.js'],
+            world: 'MAIN',
+          });
+        }
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          world: 'MAIN',
+          func: (name: string, callArgs: unknown[]) =>
+            (globalThis as unknown as { __bsPage_dispatch: (n: string, a: unknown[]) => unknown }).__bsPage_dispatch(
+              name,
+              callArgs
+            ),
+          args: [scriptName, args],
+        });
+        return results[0]?.result as never;
       },
     },
     ai: ai
@@ -254,9 +555,9 @@ export function createChromeAPI(): ChromeAPI {
 /** Mock Chrome API for testing. */
 export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeAPI {
   const defaultTabs: TabInfo[] = [
-    { id: 1, title: 'Example', url: 'https://example.com', active: true, pinned: false, windowId: 1, index: 0 },
-    { id: 2, title: 'GitHub', url: 'https://github.com', active: false, pinned: false, windowId: 1, index: 1 },
-    { id: 3, title: 'Gmail', url: 'https://mail.google.com', active: true, pinned: false, windowId: 2, index: 0 },
+    { id: 1, title: 'Example', url: 'https://example.com', active: true, pinned: false, audible: false, windowId: 1, index: 0 },
+    { id: 2, title: 'GitHub', url: 'https://github.com', active: false, pinned: true, audible: true, windowId: 1, index: 1 },
+    { id: 3, title: 'Gmail', url: 'https://mail.google.com', active: true, pinned: false, audible: false, windowId: 2, index: 0 },
   ];
 
   const defaultWindows: WindowInfo[] = [
@@ -284,10 +585,13 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
     },
     tabs: {
       query: async (q) => {
-        if (q.windowId !== undefined) return defaultTabs.filter((t) => t.windowId === q.windowId);
-        if (q.currentWindow) return defaultTabs.filter((t) => t.windowId === 1);
-        if (q.active) return defaultTabs.filter((t) => t.active);
-        return defaultTabs;
+        let tabs = defaultTabs;
+        if (q.windowId !== undefined) tabs = tabs.filter((t) => t.windowId === q.windowId);
+        if (q.currentWindow) tabs = tabs.filter((t) => t.windowId === 1);
+        if (q.active) tabs = tabs.filter((t) => t.active);
+        if (q.audible) tabs = tabs.filter((t) => t.audible);
+        if (q.pinned) tabs = tabs.filter((t) => t.pinned);
+        return tabs;
       },
       get: async (id) => defaultTabs.find((t) => t.id === id),
       create: async (props) => ({
@@ -302,7 +606,15 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
       remove: async () => {},
       update: async (id, props) => {
         const tab = defaultTabs.find((t) => t.id === id);
-        return tab ? { ...tab, url: (props.url as string) ?? tab.url, active: props.active ?? tab.active, pinned: props.pinned ?? tab.pinned } : undefined;
+        return tab
+          ? {
+              ...tab,
+              url: (props.url as string) ?? tab.url,
+              active: props.active ?? tab.active,
+              pinned: props.pinned ?? tab.pinned,
+              muted: props.muted ?? tab.muted,
+            }
+          : undefined;
       },
       duplicate: async (id) => {
         const tab = defaultTabs.find((t) => t.id === id);
@@ -315,8 +627,12 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
         return moved;
       },
       reload: async () => {},
+      discard: async () => {},
       goBack: async () => {},
       goForward: async () => {},
+      getZoom: async () => 1,
+      setZoom: async () => {},
+      captureVisibleTab: async () => 'data:image/png;base64,mock',
     },
     bookmarks: {
       getTree: async () => [
@@ -348,15 +664,140 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
       get: async () => [{ id: '2', title: 'Project', url: 'https://project.com' }],
     },
     history: {
+      search: async ({ text, startTime, endTime, maxResults }) => {
+        const all = [
+          { id: '1', url: 'https://example.com', title: 'Example', lastVisitTime: Date.now(), visitCount: 5 },
+          { id: '2', url: 'https://github.com/user', title: 'GitHub', lastVisitTime: Date.now() - 3600000, visitCount: 12 },
+          { id: '3', url: 'https://github.com/other', title: 'Other', lastVisitTime: Date.now() - 86400000 * 2, visitCount: 2 },
+        ];
+        let items = all;
+        if (startTime !== undefined) items = items.filter((i) => i.lastVisitTime >= startTime);
+        if (endTime !== undefined) items = items.filter((i) => i.lastVisitTime < endTime);
+        if (text) {
+          const lower = text.toLowerCase();
+          items = items.filter((i) => i.title.toLowerCase().includes(lower) || i.url.toLowerCase().includes(lower));
+        }
+        return items.slice(0, maxResults ?? items.length);
+      },
+      deleteUrl: async () => {},
+      deleteRange: async () => {},
+    },
+    browsingData: {
+      remove: async () => {},
+    },
+    downloads: {
       search: async () => [
-        { id: '1', url: 'https://example.com', title: 'Example', lastVisitTime: Date.now(), visitCount: 5 },
+        {
+          id: 1,
+          filename: 'report.pdf',
+          url: 'https://example.com/report.pdf',
+          state: 'complete',
+          bytesReceived: 1024000,
+          totalBytes: 1024000,
+          startTime: Date.now() - 3600000,
+          exists: true,
+        },
+        {
+          id: 2,
+          filename: 'photo.jpg',
+          url: 'https://cdn.example.com/photo.jpg',
+          state: 'complete',
+          bytesReceived: 512000,
+          totalBytes: 512000,
+          startTime: Date.now() - 7200000,
+          exists: true,
+        },
       ],
+      open: async () => {},
+      show: async () => {},
+      erase: async () => [1, 2],
+      removeFile: async () => {},
+      showDefaultFolder: async () => {},
+    },
+    cookies: {
+      getAll: async ({ domain }) => {
+        if (!domain || domain.includes('example.com')) {
+          return [
+            { name: 'session', domain: '.example.com', path: '/', secure: true, httpOnly: true, session: false },
+            { name: 'prefs', domain: 'example.com', path: '/', secure: false, httpOnly: false, session: true },
+          ];
+        }
+        return [];
+      },
+    },
+    sessions: {
+      getRecentlyClosed: async () => [
+        {
+          sessionId: 'sess-1',
+          tab: { title: 'Example Page', url: 'https://example.com/page' },
+        },
+        {
+          sessionId: 'sess-2',
+          window: {
+            tabs: [
+              { title: 'GitHub', url: 'https://github.com', active: true },
+              { title: 'Docs', url: 'https://docs.example.com', active: false },
+            ],
+          },
+        },
+      ],
+      restore: async (sessionId) => ({
+        sessionId,
+        tab: { title: 'Restored', url: 'https://example.com' },
+      }),
+    },
+    contentSettings: {
+      get: async (_details, name) => ({ setting: name === 'notifications' ? 'ask' : 'allow' }),
+      set: async () => {},
+      clear: async () => {},
+    },
+    management: {
+      getAll: async () => [
+        {
+          id: 'abc123',
+          name: 'BrowserShell',
+          version: '0.1.0',
+          enabled: true,
+          type: 'extension',
+          description: 'A shell for your browser',
+          optionsUrl: 'options/index.html',
+        },
+        {
+          id: 'def456',
+          name: 'uBlock Origin',
+          version: '1.0.0',
+          enabled: true,
+          type: 'extension',
+          description: 'Block ads',
+        },
+        {
+          id: 'ghi789',
+          name: 'Dark Reader',
+          version: '4.9.0',
+          enabled: false,
+          type: 'extension',
+        },
+      ],
+      setEnabled: async () => {},
+      openOptionsPage: async () => {},
     },
     scripting: {
-      executeScript: async () => 'Page content for testing.',
+      executeScript: async (_tabId, func, ...args) => func(...args) as never,
+      executePageScript: async (_tabId, scriptName, args) => {
+        const fn = PAGE_SCRIPT_REGISTRY[scriptName as keyof typeof PAGE_SCRIPT_REGISTRY];
+        if (!fn) throw new Error(`Unknown page script: ${scriptName}`);
+        return fn(...args) as never;
+      },
     },
     ai: undefined,
   };
 
-  return { ...base, ...overrides };
+  return {
+    ...base,
+    ...overrides,
+    scripting: {
+      ...base.scripting,
+      ...overrides.scripting,
+    },
+  };
 }

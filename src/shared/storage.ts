@@ -1,14 +1,16 @@
 import type { ShellConfig } from './types';
 
 const DEFAULT_CONFIG: ShellConfig = {
-  theme: 'github-dark',
-  prompt: '\\u@browser:\\w$ ',
+  theme: 'redline',
+  username: 'user',
+  welcomeEnabled: true,
+  prompt: '\\u@\\h:\\w$ ',
   hotkey: 'Command+Shift+K',
   firstRunComplete: false,
   aliases: {},
   env: {
     HOME: '/',
-    USER: 'browser',
+    USER: 'user',
     SHELL: 'browsershell',
   },
   history: [],
@@ -25,7 +27,12 @@ const DEFAULT_CONFIG: ShellConfig = {
     'alias lt=tabs',
   ].join('\n'),
   toggleKey: '`',
-  displayMode: 'overlay',
+  customThemes: [],
+  forgetPresets: {
+    light: { scope: 'cookies' },
+    cache: { scope: 'cache' },
+    full: { scope: 'data', includeHistory: true },
+  },
   overlayEnabled: true,
   overlayHeight: 100,
   overlayOpacity: 0.88,
@@ -35,7 +42,9 @@ const DEFAULT_CONFIG: ShellConfig = {
   fontFamily: 'jetbrains',
   promptColor: '',
   cursorBlink: true,
+  cursorStyle: 'block',
   lineHeight: 1.3,
+  letterSpacing: 0,
 };
 
 export async function loadConfig(): Promise<ShellConfig> {
@@ -44,7 +53,11 @@ export async function loadConfig(): Promise<ShellConfig> {
   // Migrate legacy theme names
   if (stored?.theme === 'dark') stored.theme = 'github-dark';
   if (stored?.theme === 'light') stored.theme = 'github-dark';
-  return { ...DEFAULT_CONFIG, ...stored };
+  const merged = { ...DEFAULT_CONFIG, ...stored };
+  if (!merged.customThemes) merged.customThemes = [];
+  if (!merged.username) merged.username = merged.env?.USER || 'user';
+  if (merged.welcomeEnabled === undefined) merged.welcomeEnabled = true;
+  return merged;
 }
 
 export async function saveConfig(config: Partial<ShellConfig>): Promise<void> {

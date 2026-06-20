@@ -5,8 +5,8 @@
 
 interface OverlayConfig {
   toggleKey: string;
-  displayMode: string;
   overlayEnabled: boolean;
+  overlayHeight: number;
   overlayOpacity: number;
   backdropBlur: number;
   backdropDim: number;
@@ -14,8 +14,8 @@ interface OverlayConfig {
 
 const DEFAULT_CONFIG: OverlayConfig = {
   toggleKey: '`',
-  displayMode: 'overlay',
   overlayEnabled: true,
+  overlayHeight: 100,
   overlayOpacity: 0.88,
   backdropBlur: 6,
   backdropDim: 0.25,
@@ -29,6 +29,22 @@ let lastToggleAt = 0;
 let iframe: HTMLIFrameElement | null = null;
 let backdrop: HTMLDivElement | null = null;
 let shellContainer: HTMLDivElement | null = null;
+let hostTabId: number | undefined;
+
+function notifyHostTab(): void {
+  if (!iframe?.contentWindow || hostTabId === undefined) return;
+  iframe.contentWindow.postMessage({ type: 'browsershell-host-tab', tabId: hostTabId }, '*');
+}
+
+function resolveHostTabId(): void {
+  chrome.runtime.sendMessage({ type: 'get-host-tab-id' }, (response) => {
+    const id = (response as { tabId?: number } | undefined)?.tabId;
+    if (typeof id === 'number') {
+      hostTabId = id;
+      notifyHostTab();
+    }
+  });
+}
 
 async function loadSettings(): Promise<void> {
   const result = await chrome.storage.local.get('config');
@@ -43,12 +59,35 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
 }
 
+function clampHeight(percent: number | undefined): number {
+  const n = Number(percent);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(100, Math.max(20, Math.round(n)));
+}
+
+function applyShellGeometry(): void {
+  if (!shellContainer) return;
+  const heightPct = clampHeight(config.overlayHeight);
+  if (heightPct >= 99) {
+    shellContainer.style.top = '0';
+    shellContainer.style.bottom = '0';
+    shellContainer.style.height = '100%';
+    shellContainer.style.borderRadius = '0';
+  } else {
+    shellContainer.style.top = 'auto';
+    shellContainer.style.bottom = '0';
+    shellContainer.style.height = `${heightPct}%`;
+    shellContainer.style.borderRadius = '0';
+  }
+}
+
 function applyStyles(): void {
   if (!shellContainer || !backdrop) return;
 
+  applyShellGeometry();
   shellContainer.style.opacity = visible ? String(config.overlayOpacity) : '0';
   shellContainer.style.pointerEvents = visible ? 'auto' : 'none';
-  shellContainer.style.background = `rgba(13, 17, 23, ${config.overlayOpacity})`;
+  shellContainer.style.background = `rgba(0, 0, 0, ${config.overlayOpacity})`;
   shellContainer.style.backdropFilter = `blur(${config.backdropBlur}px)`;
   shellContainer.style.setProperty('-webkit-backdrop-filter', `blur(${config.backdropBlur}px)`);
 
@@ -73,17 +112,18 @@ function createOverlay(): void {
 
   shellContainer = document.createElement('div');
   shellContainer.style.cssText = [
-    'position:absolute;inset:0;',
+    'position:absolute;left:0;right:0;',
     'display:flex;flex-direction:column;',
     'opacity:0;',
-    'transition:opacity 0.18s ease;',
+    'transition:opacity 0.18s ease,height 0.18s ease;',
     'pointer-events:none;',
     'overflow:hidden;',
+    'box-shadow:0 -8px 32px rgba(0,0,0,0.35);',
   ].join('');
 
   const header = document.createElement('div');
   header.style.cssText =
-    'height:3px;flex-shrink:0;background:linear-gradient(90deg,#58a6ff,#bc8cff,#3fb950);';
+    'height:3px;flex-shrink:0;background:#ff0000;';
   shellContainer.appendChild(header);
 
   iframe = document.createElement('iframe');
@@ -98,10 +138,13 @@ function createOverlay(): void {
   document.documentElement.appendChild(root);
 
   applyStyles();
+  resolveHostTabId();
 
   window.addEventListener('message', (e) => {
     if (e.data?.type === 'browsershell-close') hide();
+    if (e.data?.type === 'browsershell-show') show();
     if (e.data?.type === 'browsershell-toggle') toggle();
+    if (e.data?.type === 'browsershell-request-host-tab') notifyHostTab();
   });
 }
 
@@ -117,7 +160,7 @@ function releaseFocus(): void {
 }
 
 function show(): void {
-  if (!config.overlayEnabled || config.displayMode === 'sidepanel') return;
+  if (!config.overlayEnabled) return;
 
   createOverlay();
   visible = true;
@@ -126,6 +169,7 @@ function show(): void {
   applyStyles();
 
   requestAnimationFrame(() => {
+    notifyHostTab();
     iframe?.contentWindow?.postMessage({ type: 'browsershell-focus' }, '*');
   });
 }
@@ -171,7 +215,7 @@ function matchesToggleKey(e: KeyboardEvent): boolean {
 }
 
 function handleKeydown(e: KeyboardEvent): void {
-  if (!config.overlayEnabled || config.displayMode === 'sidepanel') return;
+  if (!config.overlayEnabled) return;
 
   const isToggle = matchesToggleKey(e);
 
@@ -206,7 +250,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === 'toggle-overlay') toggle();
+  if (msg.type === 'overlay-show') show();
+  if (msg.type === 'overlay-hide') hide();
+  if (msg.type === 'overlay-toggle' || msg.type === 'toggle-overlay') toggle();
   if (msg.type === 'config-updated') {
     config = { ...DEFAULT_CONFIG, ...msg.config };
     applyStyles();

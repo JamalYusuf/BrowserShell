@@ -1,0 +1,132 @@
+scenarios:
+  - id: tabs
+    title: Tab triage
+    site: news.ycombinator.com
+    lines:
+      - type: cmd
+        text: "tabs | grep -i hn"
+      - type: header
+        text: "#  Title                    URL"
+      - type: row
+        num: "1"
+        text: "HN: AI agents thread        news.ycombinator.com/item?id=…"
+      - type: row
+        num: "2"
+        text: "Show HN: BrowserShell        news.ycombinator.com/item?id=…"
+      - type: blank
+      - type: cmd
+        text: "tab switch 2"
+      - type: out
+        text: "Switched to tab 2"
+      - type: blank
+      - type: cmd
+        text: "links | head"
+      - type: header
+        text: "#  Text                     Href"
+      - type: row
+        num: "1"
+        text: "comments                   item?id=…"
+      - type: row
+        num: "2"
+        text: "past                       news.ycombinator.com/past"
+
+  - id: privacy
+    title: Privacy audit
+    site: tracker-heavy-site.com
+    lines:
+      - type: cmd
+        text: "siteinfo"
+      - type: out
+        text: "Cookies: 14 · Storage: 2.1 MB · Scripts: 23"
+      - type: blank
+      - type: cmd
+        text: "cookies | head"
+      - type: header
+        text: "#  Name                     Domain"
+      - type: row
+        num: "1"
+        text: "_ga                        .tracker-heavy-site.com"
+      - type: row
+        num: "2"
+        text: "session_id                 tracker-heavy-site.com"
+      - type: blank
+      - type: cmd
+        text: "forget --dry-run"
+      - type: out
+        text: "Would remove: 14 cookies, 2.1 MB cache, 1.8 MB storage"
+      - type: blank
+      - type: cmd
+        text: "forget --preset strict"
+
+  - id: research
+    title: Research flow
+    site: arxiv.org
+    lines:
+      - type: cmd
+        text: "history search \"transformer\""
+      - type: row
+        num: "1"
+        text: "Attention Is All You Need   arxiv.org/abs/1706.03762"
+      - type: blank
+      - type: cmd
+        text: "go !1"
+      - type: out
+        text: "Navigated to arxiv.org/abs/1706.03762"
+      - type: blank
+      - type: cmd
+        text: "read | head -20"
+      - type: out
+        text: "Abstract: The dominant sequence transduction models…"
+      - type: blank
+      - type: cmd
+        text: "ai summarize --length short"
+      - type: out
+        text: "Proposes self-attention architecture replacing RNNs…"
+
+  - id: dev
+    title: Page inspect
+    site: localhost:3000
+    lines:
+      - type: cmd
+        text: "tech"
+      - type: out
+        text: "React 18 · Next.js 14 · Vercel"
+      - type: blank
+      - type: cmd
+        text: "reqs | grep -i api"
+      - type: row
+        num: "1"
+        text: "GET /api/users              200  42ms"
+      - type: row
+        num: "2"
+        text: "POST /api/auth              401  12ms"
+      - type: blank
+      - type: cmd
+        text: "inputs"
+      - type: row
+        num: "1"
+        text: "email    input[type=email]"
+      - type: row
+        num: "2"
+        text: "password input[type=password]"
+      - type: blank
+      - type: cmd
+        text: "fill 1 \"dev@example.com\""
+
+faqs:
+  - q: "Why does BrowserShell need access to all websites?"
+    a: "The Quake-style overlay injects on every page so you can press ` anywhere. Page commands (links, read, click) run scripts in the active tab only when you execute them — never silently."
+  - q: "Does BrowserShell send data to any server?"
+    a: "No. Zero servers, zero analytics, zero accounts. Everything runs locally in Chrome. Config and history live in chrome.storage.local on your device."
+  - q: "How is this different from Vimium or Surfingkeys?"
+    a: "Those are keyboard navigation layers. BrowserShell is a full shell — pipes, VFS, 86 commands, clickable lists, aliases, watch mode. You manage tabs, history, bookmarks, downloads, and page DOM from one prompt."
+  - q: "How is this different from the Chrome DevTools console?"
+    a: "DevTools is for debugging JavaScript on one page. BrowserShell operates on browser-level resources (tabs, windows, bookmarks, history) and composes commands with pipes — closer to Bash than a REPL."
+  - q: "Can I use this without learning 86 commands?"
+    a: "Yes. Start with tabs, go, help, and man. Tab completion and search suggest commands as you type. apropos finds commands by keyword."
+  - q: "Is the forget command safe?"
+    a: "Always run forget --dry-run first. It shows exactly what would be deleted. Confirmation is required unless you pass --force. Named presets live in the options page."
+  - q: "Will this ship on the Chrome Web Store?"
+    a: "Planned. Privacy policy, permissions rationale, and security docs are ready. Until then, build from source and load unpacked from dist/."
+  - q: "Can websites extend BrowserShell?"
+    a: "On the roadmap. Sites will opt in via browser-shell.json manifests to register domain-specific commands when you visit them. See the Future page."

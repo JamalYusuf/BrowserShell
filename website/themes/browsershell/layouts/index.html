@@ -1,0 +1,320 @@
+{{ define "main" }}
+<section class="hero hero-modern">
+  <div class="hero-grid-bg" aria-hidden="true"></div>
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <div class="hero-badges">
+        <span class="hero-badge">Chrome extension</span>
+        <span class="hero-badge">Manifest V3</span>
+        <span class="hero-badge">Local-only</span>
+        <span class="hero-badge">MIT</span>
+      </div>
+      <h1>{{ .Site.Params.tagline }}</h1>
+      <p class="lead lead-strong">
+        BrowserShell gives you a real terminal on top of any webpage — tabs, history, bookmarks,
+        privacy tools, and page inspection as typed commands. Not another popup. Not another settings maze.
+      </p>
+      <p class="lead">
+        Press <code>`</code> anywhere. Run <code>tabs | grep github</code>. Click row 2 to switch.
+        <strong>{{ .Site.Params.command_count }} commands</strong>, pipes, aliases, and clickable output.
+      </p>
+      <div class="command-rotator" data-command-rotator aria-live="polite">
+        <span class="command-rotator-prompt">you@current-tab:~$</span>
+        <span class="command-rotator-cmd" data-rotator-cmd>tabs | grep github</span>
+        <span class="command-rotator-cursor">█</span>
+      </div>
+      <div class="hero-install">
+        <a class="btn-install-chrome" href="{{ partial "site-url.html" "docs/getting-started/#install" }}">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          Install for Chrome
+        </a>
+        <span class="hero-install-note">Build from source · Load unpacked at chrome://extensions · Press ` to toggle</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-secondary" href="#why">Why it exists</a>
+        <a class="btn btn-ghost" href="{{ .Site.Params.github }}" target="_blank" rel="noopener">View source</a>
+      </div>
+      <div class="hero-stats">
+        <div><strong>{{ .Site.Params.command_count }}</strong><span>commands</span></div>
+        <div><strong>0</strong><span>servers</span></div>
+        <div><strong>0</strong><span>telemetry</span></div>
+        <div><strong>`</strong><span>to toggle</span></div>
+      </div>
+    </div>
+    <div class="hero-terminal">
+      {{ partial "terminal-demo.html" . }}
+      <p class="hero-terminal-hint muted">Quake-style overlay · stays on the page you're working on</p>
+    </div>
+  </div>
+</section>
+
+<section class="marquee-section" aria-hidden="true">
+  <div class="marquee-track">
+    <span><code>tabs</code> · <code>go</code> · <code>history search</code> · <code>downloads</code> · <code>links</code> · <code>forget</code> · <code>siteinfo</code> · <code>watch</code> · <code>alias</code> · <code>man</code> · <code>options</code> · <code>ai summarize</code> ·</span>
+    <span><code>tabs</code> · <code>go</code> · <code>history search</code> · <code>downloads</code> · <code>links</code> · <code>forget</code> · <code>siteinfo</code> · <code>watch</code> · <code>alias</code> · <code>man</code> · <code>options</code> · <code>ai summarize</code> ·</span>
+  </div>
+</section>
+
+<section class="section section-problem reveal" id="problem">
+  <div class="container">
+    <p class="section-label">The problem</p>
+    <h2 class="section-title section-title-left">Your browser can do everything.<br>Getting it to do anything takes forever.</h2>
+    <p class="section-lead section-lead-left">
+      Chrome is an OS with dozens of subsystems — tabs, history, cookies, downloads, extensions, DevTools.
+      But every task sends you through a different UI: menus, chrome:// pages, popups, and right-click detours.
+    </p>
+    <div class="problem-grid">
+      <article class="problem-card">
+        <span class="problem-num">01</span>
+        <h3>Context switching</h3>
+        <p>Close a tab, check downloads, search history — each action opens a new surface. You lose your place on the page you were actually working on.</p>
+      </article>
+      <article class="problem-card">
+        <span class="problem-num">02</span>
+        <h3>Scattered tools</h3>
+        <p>Tab managers, bookmark search, cookie viewers, and privacy cleaners live in separate extensions or buried chrome:// URLs. No single interface.</p>
+      </article>
+      <article class="problem-card">
+        <span class="problem-num">03</span>
+        <h3>No composability</h3>
+        <p>You can't pipe tab output into grep, alias your morning routine, or script "search history → open result → summarize page" as one flow.</p>
+      </article>
+      <article class="problem-card">
+        <span class="problem-num">04</span>
+        <h3>Power users adapt</h3>
+        <p>Developers already think in shells. The browser never gave them one — so they hack together shortcuts, bookmarks, and five extensions instead.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark section-origin reveal" id="why">
+  <div class="container origin-layout">
+    <div class="origin-copy">
+      <p class="section-label">Why it was created</p>
+      <h2 class="section-title section-title-left">Built because the browser deserved a shell.</h2>
+      <p>
+        BrowserShell started from a simple frustration: the browser is the most-used app on your machine,
+        yet the fastest way to triage tabs is still clicking through UI chrome designed for casual users.
+      </p>
+      <p>
+        Terminal users already have a mental model — commands, pipes, man pages, aliases. BrowserShell
+        applies that model to browser primitives: tabs become listable rows, bookmarks become searchable paths,
+        site data becomes commands you type and audit.
+      </p>
+      <p class="muted">
+        It's open source, runs entirely in your browser, stores config locally, and never phones home.
+        If you live in the keyboard, this is the interface Chrome should have shipped.
+      </p>
+      <a class="btn btn-secondary" href="{{ partial "site-url.html" "docs/concepts/" }}">Read the design philosophy →</a>
+    </div>
+    <blockquote class="origin-quote">
+      <p>“Treat the browser like an OS. Give it bash.”</p>
+      <footer>— The idea behind every command, pipe, and <code>man</code> page in v0.1</footer>
+    </blockquote>
+  </div>
+</section>
+
+<section class="section section-solution reveal" id="what">
+  <div class="container">
+    <p class="section-label">What it does</p>
+    <h2 class="section-title">One overlay. Every browser capability as a command.</h2>
+    <p class="section-lead">
+      Press <code>`</code> on any page. A fullscreen terminal drops in. Type. Click results. Close with <code>Escape</code>.
+      Your page stays underneath — no navigation, no new tab.
+    </p>
+    <div class="pillar-grid">
+      <article class="pillar-card">
+        <div class="pillar-icon">⌘</div>
+        <h3>Command everything</h3>
+        <p>Tabs, windows, bookmarks, history, downloads, cookies, DOM links, inputs, images, extensions — each exposed as a typed command with <code>help</code> and <code>man</code> docs.</p>
+        <ul class="pillar-examples">
+          <li><code>tabs | grep docs</code></li>
+          <li><code>bookmark search api</code></li>
+          <li><code>downloads</code></li>
+        </ul>
+      </article>
+      <article class="pillar-card pillar-card-accent">
+        <div class="pillar-icon">◎</div>
+        <h3>Compose workflows</h3>
+        <p>Pipe output between commands. Set aliases for routines. Watch any command on an interval. Bang-expansion and a virtual filesystem for browser state.</p>
+        <ul class="pillar-examples">
+          <li><code>history search react | head</code></li>
+          <li><code>watch 5 tabs</code></li>
+          <li><code>alias ll=tabs</code></li>
+        </ul>
+      </article>
+      <article class="pillar-card">
+        <div class="pillar-icon">↵</div>
+        <h3>Click the output</h3>
+        <p>Numbered rows are actions, not decoration. List tabs → click 3 to switch. List downloads → click 1 to open. A TUI that lives inside your browser.</p>
+        <ul class="pillar-examples">
+          <li><code>tabs</code> → click row</li>
+          <li><code>links | head</code> → click href</li>
+          <li><code>recent</code> → restore session</li>
+        </ul>
+      </article>
+      <article class="pillar-card">
+        <div class="pillar-icon">⚿</div>
+        <h3>Audit &amp; forget</h3>
+        <p>Inspect what a site stores, review permissions, and clear cookies or cache from the keyboard — with dry-run before destructive actions.</p>
+        <ul class="pillar-examples">
+          <li><code>siteinfo</code></li>
+          <li><code>cookies</code></li>
+          <li><code>forget --dry-run</code></li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section section-compact reveal">
+  <div class="container">
+    <p class="section-label center-label">Before &amp; after</p>
+    <h2 class="section-title">Five clicks → one command</h2>
+    <div class="compare-grid compare-grid-modern">
+      <div class="compare-col compare-before">
+        <h3><span class="compare-tag">Without</span> BrowserShell</h3>
+        <ul>
+          <li>Right-click → "Search history for…"</li>
+          <li><code>chrome://downloads</code> in a new tab</li>
+          <li>DevTools → Application → Cookies</li>
+          <li>Bookmark manager in another window</li>
+          <li>Extension popup #7 for tab search</li>
+        </ul>
+      </div>
+      <div class="compare-col compare-after">
+        <h3><span class="compare-tag compare-tag-red">With</span> BrowserShell</h3>
+        <ul>
+          <li><code>history search react</code></li>
+          <li><code>downloads</code> → click row 1</li>
+          <li><code>cookies</code></li>
+          <li><code>bookmark search docs</code></li>
+          <li><code>tabs | grep github</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal">
+  <div class="container">
+    <p class="section-label center-label">How it works</p>
+    <h2 class="section-title">Three steps. You're productive in under a minute.</h2>
+    <div class="steps steps-modern">
+      <div class="step">
+        <span class="step-num">1</span>
+        <h3>Press <code>`</code></h3>
+        <p>A Quake-style terminal overlays the current page. Works on any site. Toggle key is configurable in options.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <h3>Type a command</h3>
+        <p>Tab completion, history, and <code>Ctrl+R</code> search. <code>help</code> and <code>man tab</code> when you're stuck.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <h3>Act on results</h3>
+        <p>Click numbered rows to run follow-ups. Pipe output to <code>grep</code>, <code>head</code>, or the next command.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark reveal" id="demos">
+  <div class="container">
+    <p class="section-label center-label">Try it</p>
+    <h2 class="section-title">Live demos</h2>
+    <p class="section-lead">Four real workflows. Switch tabs to explore — every command works in v{{ .Site.Params.extension_version }}.</p>
+    {{ partial "interactive-demo.html" . }}
+    <p class="center" style="margin-top:2rem"><a href="{{ partial "site-url.html" "docs/demos/" }}">Full demo walkthroughs with explanations →</a></p>
+  </div>
+</section>
+
+<section class="section reveal">
+  <div class="container">
+    <p class="section-label center-label">Command surface</p>
+    <h2 class="section-title">{{ .Site.Params.command_count }} commands. Nine categories.</h2>
+    <p class="section-lead">Pipe them. Alias them. Watch them. All documented with <code>man</code> pages.</p>
+    <div class="command-categories">
+      <div class="cmd-cat"><span class="cmd-cat-label">Navigation</span><code>go open back reload search</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Tabs</span><code>tabs tab pin discard domain</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Windows</span><code>windows recent sessions mute</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Bookmarks</span><code>bookmarks bookmark</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">History</span><code>history search delete</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Page</span><code>links read click fill shot tech</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Privacy</span><code>forget siteinfo permissions</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Shell</span><code>ls cd cat grep alias export</code></div>
+      <div class="cmd-cat"><span class="cmd-cat-label">Utility</span><code>options user config watch notify</code></div>
+    </div>
+    <div class="feature-grid" style="margin-top:3rem">
+      <article class="card card-icon">
+        <h3>Virtual filesystem</h3>
+        <p><code>ls /tabs</code>, <code>cd /bookmarks</code>, <code>cat /current/url.txt</code> — browser state as navigable paths.</p>
+      </article>
+      <article class="card card-icon">
+        <h3>Self-documenting</h3>
+        <p><code>help</code>, <code>man tab</code>, <code>apropos privacy</code>. Never stuck guessing syntax.</p>
+      </article>
+      <article class="card card-icon">
+        <h3>Local-only</h3>
+        <p>No cloud. No telemetry. Config in <code>chrome.storage.local</code>. <a href="{{ .Site.Params.github }}">Audit the MIT source</a>.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section section-dark" id="faq">
+  <div class="container narrow">
+    <p class="section-label center-label">FAQ</p>
+    <h2 class="section-title">Common questions</h2>
+    {{ partial "faq-list.html" . }}
+    <p class="center" style="margin-top:2rem"><a href="{{ partial "site-url.html" "docs/faq/" }}">More questions →</a></p>
+  </div>
+</section>
+
+<section class="section section-dark" id="open-source">
+  <div class="container">
+    <p class="section-label center-label">Open source</p>
+    <h2 class="section-title">Read every line before you install</h2>
+    <p class="section-lead">MIT licensed. No telemetry. Built in public.</p>
+    <div class="oss-grid">
+      <a class="oss-card" href="{{ .Site.Params.github }}" target="_blank" rel="noopener">
+        <span class="oss-icon">⎇</span>
+        <strong>Repository</strong>
+        <span class="muted">Star, fork, watch releases</span>
+      </a>
+      <a class="oss-card" href="{{ partial "site-url.html" "docs/getting-started/" }}">
+        <span class="oss-icon">▸</span>
+        <strong>Getting started</strong>
+        <span class="muted">Install, first commands, options</span>
+      </a>
+      <a class="oss-card" href="{{ partial "site-url.html" "docs/commands/reference/" }}">
+        <span class="oss-icon">⌘</span>
+        <strong>Command reference</strong>
+        <span class="muted">All {{ .Site.Params.command_count }} commands</span>
+      </a>
+      <a class="oss-card" href="{{ .Site.Params.github_contributing }}" target="_blank" rel="noopener">
+        <span class="oss-icon">⊕</span>
+        <strong>Contributing</strong>
+        <span class="muted">PRs, code style, workflow</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section cta-section cta-section-modern">
+  <div class="container narrow center">
+    <p class="section-label center-label">Get started</p>
+    <h2>Install in two minutes</h2>
+    <p class="section-lead" style="margin-bottom:1.5rem">Clone, build, load unpacked. Press <code>`</code> on any page.</p>
+    <pre class="install-block"><code>git clone {{ .Site.Params.github }}.git
+cd browsershell && npm install && npm run build</code></pre>
+    <p class="muted">Load <code>dist/</code> at <code>chrome://extensions</code> → Developer mode → Load unpacked.</p>
+    <div class="hero-actions" style="justify-content:center;margin-top:1.5rem">
+      <a class="btn btn-primary" href="{{ partial "site-url.html" "docs/getting-started/" }}">Getting started guide</a>
+      <a class="btn btn-secondary" href="{{ partial "site-url.html" "legal/privacy-policy/" }}">Privacy policy</a>
+    </div>
+  </div>
+</section>
+{{ end }}

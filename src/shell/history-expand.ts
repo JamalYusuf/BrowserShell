@@ -8,6 +8,10 @@ const BANG_URLS: Record<string, (query: string) => string> = {
   so: (q) => `https://stackoverflow.com/search?q=${encodeURIComponent(q)}`,
 };
 
+const BANG_COMMANDS: Record<string, (query: string) => string> = {
+  bm: (q) => `bookmark ${q}`,
+};
+
 export function expandShellHistory(input: string, lastCommand: string): string {
   const trimmed = input.trim();
   if (trimmed === '!!') return lastCommand;
@@ -24,6 +28,9 @@ export function expandBang(input: string): string {
 
   const bang = match[1]!.toLowerCase();
   const query = match[2]!.trim();
+  const cmd = BANG_COMMANDS[bang];
+  if (cmd) return cmd(query);
+
   const builder = BANG_URLS[bang];
   if (!builder) return input;
 

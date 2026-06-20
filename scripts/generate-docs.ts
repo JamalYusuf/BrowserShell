@@ -1,6 +1,6 @@
 /** Auto-generate command reference from registry metadata. */
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { mkdirSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
 import { registerAllCommands } from '../src/commands/index.ts';
 import { getRegistry } from '../src/shell/registry.ts';
 
@@ -8,7 +8,7 @@ registerAllCommands();
 const registry = getRegistry();
 const commands = registry.getAll().sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
 
-let md = '# BrowserShell Command Reference\n\n> Auto-generated from command registry.\n\n';
+let md = '# BrowserShell Command Reference\n\n> Auto-generated from command registry. Run `npm run generate-docs` to update.\n\n';
 
 let currentCategory = '';
 for (const cmd of commands) {
@@ -30,5 +30,6 @@ for (const cmd of commands) {
 }
 
 const outPath = join(import.meta.dirname, '..', 'docs', 'COMMANDS.md');
+mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, md);
 console.log(`Generated ${outPath} (${commands.length} commands)`);

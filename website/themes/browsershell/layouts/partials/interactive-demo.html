@@ -1,0 +1,43 @@
+<div class="interactive-demo" data-demo-root>
+  <div class="demo-tabs" role="tablist">
+    {{ range $i, $s := .Site.Data.demos.scenarios }}
+    <button
+      type="button"
+      class="demo-tab{{ if eq $i 0 }} active{{ end }}"
+      role="tab"
+      data-demo-id="{{ $s.id }}"
+      data-demo-site="{{ $s.site }}"
+      aria-selected="{{ if eq $i 0 }}true{{ else }}false{{ end }}"
+    >{{ $s.title }}</button>
+    {{ end }}
+  </div>
+  <div class="terminal terminal-interactive">
+    <div class="terminal-chrome">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="terminal-title" data-demo-site>{{ (index .Site.Data.demos.scenarios 0).site }}</span>
+    </div>
+    <div class="terminal-body">
+      {{ range $i, $s := .Site.Data.demos.scenarios }}
+      <div class="demo-panel{{ if eq $i 0 }} active{{ end }}" data-demo-panel="{{ $s.id }}" {{ if ne $i 0 }}hidden{{ end }}>
+        {{ range $s.lines }}
+          {{ if eq .type "cmd" }}
+        <div class="line"><span class="prompt">you@{{ $s.site }}:/$</span> {{ .text }}</div>
+          {{ else if eq .type "header" }}
+        <div class="line dim">{{ .text }}</div>
+          {{ else if eq .type "row" }}
+        <div class="line row-clickable"><span class="num">{{ .num }}</span>  {{ .text }}</div>
+          {{ else if eq .type "out" }}
+        <div class="line dim">{{ .text }}</div>
+          {{ else if eq .type "blank" }}
+        <div class="line">&nbsp;</div>
+          {{ end }}
+        {{ end }}
+        <div class="line"><span class="prompt">you@{{ $s.site }}:/$</span><span class="cursor">█</span></div>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+  <p class="demo-hint muted">Switch scenarios above — numbered rows are clickable in the real extension.</p>
+</div>

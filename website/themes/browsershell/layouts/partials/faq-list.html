@@ -1,0 +1,8 @@
+<div class="faq-list">
+  {{ range .Site.Data.demos.faqs }}
+  <details class="faq-item">
+    <summary>{{ .q }}</summary>
+    <p>{{ .a }}</p>
+  </details>
+  {{ end }}
+</div>

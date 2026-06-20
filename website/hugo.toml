@@ -1,0 +1,62 @@
+baseURL = 'https://jamalyusuf.github.io/browsershell/'
+languageCode = 'en-us'
+title = 'BrowserShell'
+theme = 'browsershell'
+
+enableGitInfo = false
+enableRobotsTXT = true
+
+[params]
+  description = 'A shell for your browser — tabs, bookmarks, history, and page actions as terminal commands.'
+  tagline = 'Your browser is an OS. This is its shell.'
+  github = 'https://github.com/jamalyusuf/browsershell'
+  github_readme = 'https://github.com/jamalyusuf/browsershell#readme'
+  github_contributing = 'https://github.com/jamalyusuf/browsershell/blob/main/CONTRIBUTING.md'
+  github_changelog = 'https://github.com/jamalyusuf/browsershell/blob/main/CHANGELOG.md'
+  github_license = 'https://github.com/jamalyusuf/browsershell/blob/main/LICENSE'
+  github_security = 'https://github.com/jamalyusuf/browsershell/blob/main/SECURITY.md'
+  github_issues = 'https://github.com/jamalyusuf/browsershell/issues'
+  extension_version = '0.1.0'
+  command_count = 88
+
+[menu]
+  [[menu.main]]
+    name = 'Docs'
+    url = '/docs/'
+    weight = 10
+  [[menu.main]]
+    name = 'Demos'
+    url = '/docs/demos/'
+    weight = 15
+  [[menu.main]]
+    name = 'Superuser'
+    url = '/docs/superuser/'
+    weight = 20
+  [[menu.main]]
+    name = 'Future'
+    url = '/future/'
+    weight = 30
+  [[menu.main]]
+    name = 'FAQ'
+    url = '/docs/faq/'
+    weight = 35
+  [[menu.main]]
+    name = 'Privacy'
+    url = '/legal/privacy-policy/'
+    weight = 40
+  [[menu.main]]
+    name = 'GitHub'
+    url = 'https://github.com/jamalyusuf/browsershell'
+    weight = 50
+
+[markup]
+  [markup.highlight]
+    style = 'monokai'
+    lineNos = false
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[outputs]
+  home = ['HTML', 'RSS']
+  section = ['HTML', 'RSS']

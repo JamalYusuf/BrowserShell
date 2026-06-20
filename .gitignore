@@ -1,5 +1,10 @@
 node_modules/
 dist/
-docs/COMMANDS.md
 *.local
 .DS_Store
+.env
+.env.*
+coverage/
+website/public/
+website/resources/
+.hugo_build.lock

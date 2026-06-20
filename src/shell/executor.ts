@@ -1,3 +1,7 @@
+/**
+ * Shell command executor — parses input, resolves aliases, runs pipelines,
+ * and dispatches to registered command handlers.
+ */
 import type { ChromeAPI } from '@/chrome/api';
 import { loadConfig, saveConfig } from '@/shared/storage';
 import type { ASTNode, CommandNode, CommandResult, ExecutionContext } from '@/shared/types';
@@ -10,6 +14,7 @@ import { error, stripAnsi, suggestCommand } from './output';
 export interface ExecutorOptions {
   chrome: ChromeAPI;
   getCols?: () => number;
+  getHostTabId?: () => number | undefined;
   onOutput?: (stream: 'stdout' | 'stderr', text: string) => void;
 }
 
@@ -21,6 +26,12 @@ export class ShellExecutor {
   private registry = getRegistry();
   private lastExitCode = 0;
   private lastBookmarkSearch: import('@/chrome/api').BookmarkNode[] = [];
+  private lastLinksResults: { text: string; href: string }[] = [];
+  private lastInputsResults: { label: string; type: string; name: string; placeholder: string }[] = [];
+  private lastImagesResults: { alt: string; src: string; width: number; height: number }[] = [];
+  private lastHistoryResults: import('@/chrome/api').HistoryItem[] = [];
+  private lastDownloadResults: import('@/chrome/api').DownloadInfo[] = [];
+  private lastExtensionResults: import('@/chrome/api').ExtensionInfo[] = [];
   private lastCommand = '';
   private activeWindowId: number | null = null;
 
@@ -30,7 +41,8 @@ export class ShellExecutor {
 
   async initialize(): Promise<void> {
     const config = await loadConfig();
-    this.env = { ...config.env };
+    const username = config.username || config.env.USER || 'user';
+    this.env = { ...config.env, USER: username };
     this.aliases = { ...config.aliases };
     await this.runRc(config.rc);
   }
@@ -52,6 +64,10 @@ export class ShellExecutor {
 
   getEnv(): Record<string, string> {
     return { ...this.env };
+  }
+
+  setEnv(updates: Record<string, string>): void {
+    this.env = { ...this.env, ...updates };
   }
 
   getAliases(): Record<string, string> {
@@ -102,6 +118,31 @@ export class ShellExecutor {
       setBookmarkSearchResults: (results) => {
         this.lastBookmarkSearch = results;
       },
+      getLastLinksResults: () => this.lastLinksResults,
+      setLastLinksResults: (results) => {
+        this.lastLinksResults = results;
+      },
+      getLastInputsResults: () => this.lastInputsResults,
+      setLastInputsResults: (results) => {
+        this.lastInputsResults = results;
+      },
+      getLastImagesResults: () => this.lastImagesResults,
+      setLastImagesResults: (results) => {
+        this.lastImagesResults = results;
+      },
+      getLastHistoryResults: () => this.lastHistoryResults,
+      setLastHistoryResults: (results) => {
+        this.lastHistoryResults = results;
+      },
+      getLastDownloadResults: () => this.lastDownloadResults,
+      setLastDownloadResults: (results) => {
+        this.lastDownloadResults = results;
+      },
+      getLastExtensionResults: () => this.lastExtensionResults,
+      setLastExtensionResults: (results) => {
+        this.lastExtensionResults = results;
+      },
+      getHostTabId: () => this.options.getHostTabId?.(),
       getActiveWindowId: async () => {
         if (this.activeWindowId !== null) return this.activeWindowId;
         const tabs = await this.options.chrome.tabs.query({ active: true, currentWindow: true });

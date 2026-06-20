@@ -1,0 +1,18 @@
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="{{ .Site.Home.RelPermalink }}">
+      <span class="logo-prompt">$</span> BrowserShell
+    </a>
+    <nav class="nav" aria-label="Main">
+      {{ range .Site.Menus.main }}
+        {{ $url := .URL }}
+        {{ if not (strings.HasPrefix $url "http") }}{{ $url = $url | relURL }}{{ end }}
+        <a href="{{ $url }}" {{ if strings.HasPrefix .URL "http" }}target="_blank" rel="noopener"{{ end }}>{{ .Name }}</a>
+      {{ end }}
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle light/dark theme">
+        <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">☀</span>
+        <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">☾</span>
+      </button>
+    </nav>
+  </div>
+</header>

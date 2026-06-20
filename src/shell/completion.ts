@@ -2,7 +2,8 @@ import type { ChromeAPI } from '@/chrome/api';
 import type { ExecutionContext } from '@/shared/types';
 import type { VirtualFileSystem } from '@/vfs';
 import { basename, dirname, normalizePath } from '@/vfs/path';
-import { getActiveWindowId, getWindowTabs } from '@/commands/tab-utils';
+import { getActiveWindowId, getWindowTabs } from '@/commands/shared/tab-utils';
+import { fuzzyFilter } from './fuzzy';
 import { getRegistry } from './registry';
 
 export interface CompletionContext {
@@ -17,9 +18,43 @@ export interface CompletionContext {
 const SUBCOMMANDS: Record<string, string[]> = {
   tab: ['new', 'close', 'switch', 'next', 'prev', 'pin', 'unpin', 'duplicate'],
   bookmark: ['add', 'search', 'open'],
-  history: ['recent', 'search'],
+  history: ['delete', 'clear', 'search', 'recent', 'today', 'yesterday', 'this-week'],
+  forget: ['preset', 'cookies', 'cache', 'storage', '--history', '--all', '--dry-run'],
+  siteinfo: ['--json', '--compare'],
+  downloads: ['open', 'show', 'delete', 'clear'],
+  extensions: ['enable', 'disable', 'options'],
+  session: ['save', 'restore', 'delete'],
+  cookies: ['clear'],
+  storage: ['clear', 'get', 'local', 'session'],
   ai: ['summarize', 'explain'],
   config: ['list', 'get', 'set'],
+  zoom: ['in', 'out', 'reset'],
+  scroll: ['top', 'bottom', 'up', 'down'],
+  volume: ['status', 'mute', 'unmute'],
+  mute: ['on', 'off', 'toggle'],
+  seek: ['--next', '--prev', '--grep'],
+  qf: ['--all'],
+  tabs: ['--all', '--json'],
+  clip: ['url', 'title', 'md', 'both', 'selection', 'log'],
+  export: ['log'],
+  reload: ['--hard'],
+  link: ['open', 'new', 'click', 'copy', 'show', 'find'],
+  links: [],
+  click: [],
+  input: ['focus', 'fill', 'clear', 'show'],
+  inputs: [],
+  image: ['open', 'copy', 'show'],
+  images: [],
+  press: [],
+  meta: ['--json'],
+  search: ['--tabs', '--bookmarks', '--history', '--downloads'],
+  log: ['clear'],
+  notify: [],
+  overlay: ['half', 'full', 'show', 'hide', 'toggle', 'status', 'height'],
+  recent: ['restore'],
+  permissions: ['set', 'reset'],
+  perf: ['--json'],
+  watch: ['stop', 'status'],
 };
 
 const PATH_COMMANDS = new Set(['ls', 'cd', 'cat', 'open', 'close', 'source', 'grep']);
@@ -132,7 +167,10 @@ export async function getShellCompletions(ctx: CompletionContext): Promise<strin
     const names = registry.getNames();
     const aliasNames = Object.keys(ctx.aliases);
     const all = [...new Set([...names, ...aliasNames])];
-    return all.filter((n) => n.toLowerCase().startsWith(prefix)).sort();
+    const exact = all.filter((n) => n.toLowerCase().startsWith(prefix));
+    if (exact.length) return exact.sort();
+    if (!prefix) return all.sort();
+    return fuzzyFilter(all, prefix, (n) => n).slice(0, 20);
   }
 
   const resolved = ctx.aliases[commandName]?.split(/\s+/)[0] ?? commandName;

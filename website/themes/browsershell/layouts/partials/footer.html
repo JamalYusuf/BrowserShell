@@ -1,0 +1,37 @@
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-col">
+      <strong>BrowserShell</strong>
+      <p class="muted">A shell for your browser. MIT licensed.</p>
+      <a href="{{ .Site.Params.github }}" target="_blank" rel="noopener">Star on GitHub</a>
+    </div>
+    <div class="footer-col">
+      <strong>Documentation</strong>
+      <a href="{{ partial "site-url.html" "docs/getting-started/" }}">Getting started</a>
+      <a href="{{ partial "site-url.html" "docs/concepts/" }}">Core concepts</a>
+      <a href="{{ partial "site-url.html" "docs/demos/" }}">Demos</a>
+      <a href="{{ partial "site-url.html" "docs/superuser/" }}">Superuser guide</a>
+      <a href="{{ partial "site-url.html" "docs/faq/" }}">FAQ</a>
+      <a href="{{ partial "site-url.html" "docs/commands/reference/" }}">Command reference</a>
+    </div>
+    <div class="footer-col">
+      <strong>Legal</strong>
+      <a href="{{ partial "site-url.html" "legal/privacy-policy/" }}">Privacy policy</a>
+      <a href="{{ partial "site-url.html" "legal/permissions/" }}">Permissions</a>
+      <a href="{{ partial "site-url.html" "legal/security/" }}">Security</a>
+    </div>
+    <div class="footer-col">
+      <strong>Project</strong>
+      <a href="{{ .Site.Params.github }}" target="_blank" rel="noopener">GitHub repository</a>
+      <a href="{{ .Site.Params.github_readme }}" target="_blank" rel="noopener">README</a>
+      <a href="{{ .Site.Params.github_contributing }}" target="_blank" rel="noopener">Contributing</a>
+      <a href="{{ .Site.Params.github_changelog }}" target="_blank" rel="noopener">Changelog</a>
+      <a href="{{ partial "site-url.html" "docs/open-source/" }}">Open source</a>
+      <a href="{{ partial "site-url.html" "future/" }}">Roadmap</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© {{ now.Year }} Jamal Yusuf</span>
+    <span class="muted">v{{ .Site.Params.extension_version }} · {{ .Site.Params.command_count }} commands · <a href="{{ .Site.Params.github_license }}" target="_blank" rel="noopener">MIT</a></span>
+  </div>
+</footer>

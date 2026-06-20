@@ -1,7 +1,10 @@
-/** Generate simple PNG icons for the extension. */
+/** Generate REDLINE-style PNG icons for the extension. */
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { deflateSync } from 'zlib';
+
+const BG = [0, 0, 0] as const;
+const RED = [255, 0, 0] as const;
 
 function crc32(buf: Buffer): number {
   let crc = 0xffffffff;
@@ -23,32 +26,67 @@ function createChunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([len, typeBuf, data, crc]);
 }
 
+function setPixel(raw: number[], x: number, y: number, size: number, rgb: readonly [number, number, number]): void {
+  const offset = (y * size + x) * 3;
+  raw[offset] = rgb[0];
+  raw[offset + 1] = rgb[1];
+  raw[offset + 2] = rgb[2];
+}
+
+function fillRect(
+  raw: number[],
+  x0: number,
+  y0: number,
+  w: number,
+  h: number,
+  size: number,
+  rgb: readonly [number, number, number]
+): void {
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (x >= 0 && x < size && y >= 0 && y < size) setPixel(raw, x, y, size, rgb);
+    }
+  }
+}
+
 function createPng(size: number): Buffer {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // RGB
+  ihdr[8] = 8;
+  ihdr[9] = 2;
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
 
+  const pixels = new Array(size * size * 3).fill(0);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      setPixel(pixels, x, y, size, BG);
+    }
+  }
+
+  const pad = Math.max(1, Math.floor(size * 0.12));
+  const barH = Math.max(1, Math.floor(size * 0.14));
+  const barW = Math.max(2, Math.floor(size * 0.52));
+  const barX = Math.floor((size - barW) / 2);
+  const barY = Math.floor(size * 0.58);
+  fillRect(pixels, barX, barY, barW, barH, size, RED);
+
+  const promptW = Math.max(2, Math.floor(size * 0.22));
+  const promptH = Math.max(2, Math.floor(size * 0.22));
+  const promptX = pad;
+  const promptY = Math.floor(size * 0.28);
+  fillRect(pixels, promptX, promptY, promptW, promptH, size, RED);
+
   const raw: number[] = [];
   for (let y = 0; y < size; y++) {
-    raw.push(0); // filter none
+    raw.push(0);
     for (let x = 0; x < size; x++) {
-      const cx = size / 2;
-      const cy = size / 2;
-      const r = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-      const inCircle = r < size * 0.4;
-      const inPrompt = x > size * 0.25 && x < size * 0.75 && y > size * 0.55 && y < size * 0.65;
-      if (inCircle || inPrompt) {
-        raw.push(88, 166, 255); // accent blue
-      } else {
-        raw.push(13, 17, 23); // dark bg
-      }
+      const offset = (y * size + x) * 3;
+      raw.push(pixels[offset]!, pixels[offset + 1]!, pixels[offset + 2]!);
     }
   }
 

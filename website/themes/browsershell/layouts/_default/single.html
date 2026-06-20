@@ -1,0 +1,27 @@
+{{ define "main" }}
+<article class="page">
+  <div class="container {{ if or (eq .Section "docs") (eq .Section "legal") }}docs-layout{{ else }}narrow{{ end }}">
+    {{ if or (eq .Section "docs") (eq .Section "legal") }}
+    <aside class="docs-sidebar">
+      {{ partial "docs-nav.html" . }}
+    </aside>
+    {{ end }}
+    <div class="page-content">
+      <header class="page-header">
+        <p class="eyebrow">{{ with .Section }}{{ humanize . }}{{ end }}</p>
+        <h1>{{ .Title }}</h1>
+        {{ with .Description }}<p class="lead">{{ . }}</p>{{ end }}
+      </header>
+      <div class="prose">
+        {{ .Content }}
+      </div>
+      {{ if eq .Section "docs" }}
+      <nav class="docs-pager">
+        {{ with .PrevInSection }}<a class="pager-prev" href="{{ .RelPermalink }}">← {{ .Title }}</a>{{ end }}
+        {{ with .NextInSection }}<a class="pager-next" href="{{ .RelPermalink }}">{{ .Title }} →</a>{{ end }}
+      </nav>
+      {{ end }}
+    </div>
+  </div>
+</article>
+{{ end }}

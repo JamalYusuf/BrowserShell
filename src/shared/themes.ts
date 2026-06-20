@@ -1,4 +1,5 @@
 import type { ITheme } from '@xterm/xterm';
+import type { CustomTheme, CustomThemeColors } from './types';
 
 export interface TerminalThemePreset {
   id: string;
@@ -10,6 +11,35 @@ export interface TerminalThemePreset {
 }
 
 export const THEME_PRESETS: TerminalThemePreset[] = [
+  {
+    id: 'redline',
+    name: 'REDLINE',
+    description: 'Sharp, high-contrast — disciplined red on black',
+    promptColor: '#e8e8e8',
+    accentColor: '#ff0000',
+    xterm: {
+      background: '#000000',
+      foreground: '#f0f0f0',
+      cursor: '#ff0000',
+      selectionBackground: 'rgba(255, 0, 0, 0.28)',
+      black: '#0a0a0a',
+      red: '#ff0000',
+      green: '#5dba6d',
+      yellow: '#e6b422',
+      blue: '#6b9fff',
+      magenta: '#ff6b8a',
+      cyan: '#b0b0b0',
+      white: '#f0f0f0',
+      brightBlack: '#666666',
+      brightRed: '#ff3333',
+      brightGreen: '#7fd97f',
+      brightYellow: '#ffcc44',
+      brightBlue: '#8cb4ff',
+      brightMagenta: '#ff8aa8',
+      brightCyan: '#d4d4d4',
+      brightWhite: '#ffffff',
+    },
+  },
   {
     id: 'github-dark',
     name: 'GitHub Dark',
@@ -184,10 +214,203 @@ export const THEME_PRESETS: TerminalThemePreset[] = [
       brightWhite: '#c0caf5',
     },
   },
+  {
+    id: 'tokyo-night',
+    name: 'Tokyo Night',
+    description: 'Clean neon-on-midnight palette',
+    promptColor: '#9ece6a',
+    accentColor: '#7aa2f7',
+    xterm: {
+      background: '#1a1b26',
+      foreground: '#c0caf5',
+      cursor: '#c0caf5',
+      selectionBackground: '#33467c',
+      black: '#15161e',
+      red: '#f7768e',
+      green: '#9ece6a',
+      yellow: '#e0af68',
+      blue: '#7aa2f7',
+      magenta: '#bb9af7',
+      cyan: '#7dcfff',
+      white: '#a9b1d6',
+      brightBlack: '#414868',
+      brightRed: '#f7768e',
+      brightGreen: '#9ece6a',
+      brightYellow: '#e0af68',
+      brightBlue: '#7aa2f7',
+      brightMagenta: '#bb9af7',
+      brightCyan: '#7dcfff',
+      brightWhite: '#c0caf5',
+    },
+  },
+  {
+    id: 'catppuccin',
+    name: 'Catppuccin',
+    description: 'Soft pastel dark with warm contrast',
+    promptColor: '#a6e3a1',
+    accentColor: '#89b4fa',
+    xterm: {
+      background: '#1e1e2e',
+      foreground: '#cdd6f4',
+      cursor: '#f5e0dc',
+      selectionBackground: '#45475a',
+      black: '#45475a',
+      red: '#f38ba8',
+      green: '#a6e3a1',
+      yellow: '#f9e2af',
+      blue: '#89b4fa',
+      magenta: '#f5c2e7',
+      cyan: '#94e2d5',
+      white: '#bac2de',
+      brightBlack: '#585b70',
+      brightRed: '#f38ba8',
+      brightGreen: '#a6e3a1',
+      brightYellow: '#f9e2af',
+      brightBlue: '#89b4fa',
+      brightMagenta: '#f5c2e7',
+      brightCyan: '#94e2d5',
+      brightWhite: '#a6adc8',
+    },
+  },
+  {
+    id: 'gruvbox',
+    name: 'Gruvbox',
+    description: 'Retro warm earth tones',
+    promptColor: '#b8bb26',
+    accentColor: '#83a598',
+    xterm: {
+      background: '#282828',
+      foreground: '#ebdbb2',
+      cursor: '#ebdbb2',
+      selectionBackground: '#504945',
+      black: '#282828',
+      red: '#cc241d',
+      green: '#98971a',
+      yellow: '#d79921',
+      blue: '#458588',
+      magenta: '#b16286',
+      cyan: '#689d6a',
+      white: '#a89984',
+      brightBlack: '#928374',
+      brightRed: '#fb4934',
+      brightGreen: '#b8bb26',
+      brightYellow: '#fabd2f',
+      brightBlue: '#83a598',
+      brightMagenta: '#d3869b',
+      brightCyan: '#8ec07c',
+      brightWhite: '#ebdbb2',
+    },
+  },
+  {
+    id: 'rose-pine',
+    name: 'Rosé Pine',
+    description: 'Muted rose and pine aesthetic',
+    promptColor: '#9ccfd8',
+    accentColor: '#c4a7e7',
+    xterm: {
+      background: '#191724',
+      foreground: '#e0def4',
+      cursor: '#e0def4',
+      selectionBackground: '#403d52',
+      black: '#26233a',
+      red: '#eb6f92',
+      green: '#31748f',
+      yellow: '#f6c177',
+      blue: '#9ccfd8',
+      magenta: '#c4a7e7',
+      cyan: '#ebbcba',
+      white: '#e0def4',
+      brightBlack: '#6e6a86',
+      brightRed: '#eb6f92',
+      brightGreen: '#31748f',
+      brightYellow: '#f6c177',
+      brightBlue: '#9ccfd8',
+      brightMagenta: '#c4a7e7',
+      brightCyan: '#ebbcba',
+      brightWhite: '#e0def4',
+    },
+  },
 ];
 
-export function getThemePreset(id: string): TerminalThemePreset {
+function blendAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+export function buildXtermFromCustom(colors: CustomThemeColors): ITheme {
+  const bg = colors.background;
+  const fg = colors.foreground;
+  return {
+    background: bg,
+    foreground: fg,
+    cursor: colors.cursor,
+    selectionBackground: blendAlpha(colors.accentColor, 0.28),
+    black: colors.background,
+    red: colors.red ?? '#ff7b72',
+    green: colors.green ?? colors.promptColor,
+    yellow: colors.yellow ?? '#d29922',
+    blue: colors.blue ?? colors.accentColor,
+    magenta: colors.magenta ?? '#bc8cff',
+    cyan: colors.cyan ?? '#39c5cf',
+    white: colors.foreground,
+    brightBlack: colors.foreground,
+    brightRed: colors.red ?? '#ffa198',
+    brightGreen: colors.green ?? colors.promptColor,
+    brightYellow: colors.yellow ?? '#e3b341',
+    brightBlue: colors.blue ?? colors.accentColor,
+    brightMagenta: colors.magenta ?? '#d2a8ff',
+    brightCyan: colors.cyan ?? '#56d4dd',
+    brightWhite: colors.foreground,
+  };
+}
+
+export function customThemeToPreset(theme: CustomTheme): TerminalThemePreset {
+  return {
+    id: theme.id,
+    name: theme.name,
+    description: 'Custom theme',
+    promptColor: theme.colors.promptColor,
+    accentColor: theme.colors.accentColor,
+    xterm: buildXtermFromCustom(theme.colors),
+  };
+}
+
+export function getAllThemePresets(customThemes: CustomTheme[] = []): TerminalThemePreset[] {
+  return [...THEME_PRESETS, ...customThemes.map(customThemeToPreset)];
+}
+
+export function getThemePreset(id: string, customThemes: CustomTheme[] = []): TerminalThemePreset {
+  const custom = customThemes.find((t) => t.id === id);
+  if (custom) return customThemeToPreset(custom);
   return THEME_PRESETS.find((t) => t.id === id) ?? THEME_PRESETS[0]!;
+}
+
+export function createCustomThemeFromPreset(
+  name: string,
+  base: TerminalThemePreset
+): CustomTheme {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
+  const id = `custom-${slug}-${Date.now().toString(36).slice(-4)}`;
+  return {
+    id,
+    name,
+    colors: {
+      background: base.xterm.background ?? '#0d1117',
+      foreground: base.xterm.foreground ?? '#c9d1d9',
+      cursor: base.xterm.cursor ?? base.xterm.foreground ?? '#58a6ff',
+      promptColor: base.promptColor,
+      accentColor: base.accentColor,
+      red: base.xterm.red,
+      green: base.xterm.green,
+      yellow: base.xterm.yellow,
+      blue: base.xterm.blue,
+      magenta: base.xterm.magenta,
+      cyan: base.xterm.cyan,
+    },
+  };
 }
 
 export const FONT_PRESETS = [

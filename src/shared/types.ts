@@ -1,4 +1,9 @@
-/** Core type definitions for BrowserShell. */
+/**
+ * Core type definitions for BrowserShell.
+ *
+ * Commands, execution context, VFS entries, and shell configuration types
+ * used across the extension.
+ */
 
 export type CommandCategory =
   | 'builtin'
@@ -9,11 +14,20 @@ export type CommandCategory =
   | 'ai'
   | 'utility';
 
+export interface ClickableList {
+  count: number;
+  command: (index: number) => string;
+}
+
 export interface CommandResult {
   stdout?: string;
   stderr?: string;
   exitCode: number;
   structured?: unknown;
+  /** Enables click-to-run on numbered list rows in terminal output */
+  clickableList?: ClickableList;
+  /** Start, update, or stop a watch interval (null = stop) */
+  watch?: { intervalMs: number; command: string } | null;
 }
 
 export function ok(stdout = '', exitCode = 0, structured?: unknown): CommandResult {
@@ -47,21 +61,49 @@ export interface ExecutionContext {
   /** Last bookmark search results — enables `bookmark open <#>` by rank */
   getBookmarkSearchResults?: () => import('@/chrome/api').BookmarkNode[];
   setBookmarkSearchResults?: (results: import('@/chrome/api').BookmarkNode[]) => void;
+  /** Last links listing — enables `link <#>` after `links` */
+  getLastLinksResults?: () => { text: string; href: string }[];
+  setLastLinksResults?: (results: { text: string; href: string }[]) => void;
+  /** Last inputs listing — enables `input <#>` after `inputs` */
+  getLastInputsResults?: () => { label: string; type: string; name: string; placeholder: string }[];
+  setLastInputsResults?: (results: { label: string; type: string; name: string; placeholder: string }[]) => void;
+  /** Last images listing — enables `image <#>` after `images` */
+  getLastImagesResults?: () => { alt: string; src: string; width: number; height: number }[];
+  setLastImagesResults?: (results: { alt: string; src: string; width: number; height: number }[]) => void;
+  /** Last history listing — enables `history delete <#>` by rank */
+  getLastHistoryResults?: () => import('@/chrome/api').HistoryItem[];
+  setLastHistoryResults?: (results: import('@/chrome/api').HistoryItem[]) => void;
+  /** Last downloads listing — enables `downloads open <#>` by rank */
+  getLastDownloadResults?: () => import('@/chrome/api').DownloadInfo[];
+  setLastDownloadResults?: (results: import('@/chrome/api').DownloadInfo[]) => void;
+  /** Last extensions listing — enables `extensions enable <#>` by rank */
+  getLastExtensionResults?: () => import('@/chrome/api').ExtensionInfo[];
+  setLastExtensionResults?: (results: import('@/chrome/api').ExtensionInfo[]) => void;
+  /** Host page tab when shell runs in overlay iframe */
+  getHostTabId?: () => number | undefined;
   /** Shell window context — tabs/tab commands target this window */
   getActiveWindowId?: () => Promise<number>;
   setActiveWindowId?: (id: number | null) => void;
 }
 
+/** A registered shell command with metadata for help, man pages, and completion. */
 export interface Command {
+  /** Primary command name (e.g. `tabs`) */
   name: string;
+  /** One-line description shown in help output */
   description: string;
+  /** Usage string with placeholders (e.g. `tab switch <n>`) */
   usage: string;
+  /** Example invocations for help/man */
   examples: string[];
   category: CommandCategory;
+  /** Related commands for cross-reference in man pages */
   seeAlso?: string[];
   notes?: string;
   aliases?: string[];
+  /** Command implementation */
   handler: (args: string[], context: ExecutionContext) => Promise<CommandResult>;
+  /** Optional tab-completion provider */
   getCompletions?: (partial: string, context: ExecutionContext) => Promise<string[]>;
 }
 
@@ -91,10 +133,41 @@ export interface VFSProvider {
   exists(path: string): Promise<boolean>;
 }
 
-export type DisplayMode = 'overlay' | 'sidepanel' | 'both';
+export interface CustomThemeColors {
+  background: string;
+  foreground: string;
+  cursor: string;
+  promptColor: string;
+  accentColor: string;
+  red?: string;
+  green?: string;
+  yellow?: string;
+  blue?: string;
+  magenta?: string;
+  cyan?: string;
+}
+
+export interface CustomTheme {
+  id: string;
+  name: string;
+  colors: CustomThemeColors;
+}
+
+export interface ForgetPreset {
+  scope?: 'cookies' | 'cache' | 'storage' | 'data' | 'all';
+  includeHistory?: boolean;
+}
 
 export interface ShellConfig {
   theme: string;
+  /** Prompt username — shown as \\u in PS1 */
+  username: string;
+  /** Show time/tabs/weather banner when the terminal opens */
+  welcomeEnabled: boolean;
+  /** User-created terminal color schemes */
+  customThemes: CustomTheme[];
+  /** Named forget profiles — use `forget preset <name>` */
+  forgetPresets?: Record<string, ForgetPreset>;
   prompt: string;
   hotkey: string;
   firstRunComplete: boolean;
@@ -104,7 +177,6 @@ export interface ShellConfig {
   rc: string;
   /** Quake-style overlay toggle key */
   toggleKey: string;
-  displayMode: DisplayMode;
   overlayEnabled: boolean;
   overlayHeight: number;
   overlayOpacity: number;
@@ -114,7 +186,9 @@ export interface ShellConfig {
   fontFamily: string;
   promptColor: string;
   cursorBlink: boolean;
+  cursorStyle: 'block' | 'underline' | 'bar';
   lineHeight: number;
+  letterSpacing: number;
 }
 
 export interface ManPage {

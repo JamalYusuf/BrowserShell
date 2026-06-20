@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMockChromeAPI } from '@/chrome/api';
-import { parseTabIndicesFromPipe, resolveTabRef, getWindowTabs } from '@/commands/tab-utils';
+import { parseTabIndicesFromPipe, resolveTabRef, getWindowTabs } from '@/commands/shared/tab-utils';
 import type { ExecutionContext } from '@/shared/types';
 
 function mockCtx(): ExecutionContext {

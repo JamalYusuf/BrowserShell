@@ -17,3 +17,22 @@ body {
   height: 100%;
   padding: 8px 12px;
 }
+
+/* Clickable list rows — highlight on hover without persistent underline */
+.xterm .xterm-rows .xterm-row:hover {
+  outline: none;
+}
+
+.xterm-underline-1 {
+  text-decoration: none !important;
+}
+
+/* Preserve text selection alongside link targets */
+.xterm .xterm-selection {
+  z-index: 2;
+}
+
+.xterm a.xterm-link {
+  text-decoration: underline;
+  text-decoration-color: rgba(107, 159, 255, 0.65);
+}

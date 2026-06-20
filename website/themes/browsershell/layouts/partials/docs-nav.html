@@ -1,0 +1,17 @@
+<nav class="docs-nav" aria-label="Documentation">
+  {{ $groups := slice "Getting started" "Guides" "Reference" "Help" }}
+  {{ range $group := $groups }}
+  <p class="docs-nav-title">{{ $group }}</p>
+  {{ range where $.Site.RegularPages "Section" "docs" }}
+    {{ if and (eq .Params.group $group) (ne .File.Path "docs/_index.md") }}
+      <a href="{{ .RelPermalink }}" class="{{ if eq $.RelPermalink .RelPermalink }}active{{ end }}">{{ .Title }}</a>
+    {{ end }}
+  {{ end }}
+  {{ end }}
+  <p class="docs-nav-title">Legal</p>
+  {{ range where .Site.Sections "Section" "legal" }}
+    {{ range .Pages.ByWeight }}
+      <a href="{{ .RelPermalink }}" class="{{ if eq $.RelPermalink .RelPermalink }}active{{ end }}">{{ .Title }}</a>
+    {{ end }}
+  {{ end }}
+</nav>

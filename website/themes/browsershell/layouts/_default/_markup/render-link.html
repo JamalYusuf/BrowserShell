@@ -1,0 +1,19 @@
+{{- $dest := .Destination -}}
+{{- $anchor := "" -}}
+{{- if strings.Contains $dest "#" -}}
+  {{- $parts := split $dest "#" -}}
+  {{- $dest = index $parts 0 -}}
+  {{- if gt (len $parts) 1 -}}
+    {{- $anchor = printf "#%s" (index $parts 1) -}}
+  {{- end -}}
+{{- end -}}
+{{- $href := $dest -}}
+{{- if strings.HasPrefix $dest "/" -}}
+  {{- $path := strings.TrimPrefix "/" $dest -}}
+  {{- $base := (urls.Parse site.BaseURL).Path | strings.TrimSuffix "/" -}}
+  {{- $href = printf "%s/%s" $base $path -}}
+{{- else if strings.HasPrefix $dest "#" -}}
+  {{- $href = printf "%s%s" .Page.RelPermalink $dest -}}
+  {{- $anchor = "" -}}
+{{- end -}}
+<a href="{{ $href }}{{ $anchor }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if strings.HasPrefix .Destination "http" }} target="_blank" rel="noopener"{{ end }}>{{ .Text | safeHTML }}</a>

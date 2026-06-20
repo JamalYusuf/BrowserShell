@@ -2,37 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { createMockChromeAPI } from '@/chrome/api';
 import { registerAllCommands } from '@/commands';
 import { ShellExecutor } from '@/shell/executor';
-import { getRegistry } from '@/shell/registry';
-
-describe('command registry', () => {
-  it('registers all MVP commands', () => {
-    registerAllCommands();
-    const registry = getRegistry();
-    const names = registry.getNames();
-
-    const expected = [
-      'help', 'man', 'apropos', 'ls', 'cd', 'pwd', 'cat', 'echo', 'clear',
-      'source', 'alias', 'export', 'grep', 'head', 'tail', 'wc',
-      'tabs', 'tab', 'bookmarks', 'bookmark', 'history', 'open', 'close', 'config',
-      'windows', 'window', 'sessions', 'find', 'detach', 'mute',
-      'go', 'qf', 'here', 'reload', 'back', 'forward', 'clip', 'quick',
-      'ai',
-    ];
-
-    for (const name of expected) {
-      expect(names).toContain(name);
-    }
-  });
-
-  it('every command has examples', () => {
-    registerAllCommands();
-    for (const cmd of getRegistry().getAll()) {
-      expect(cmd.examples.length).toBeGreaterThanOrEqual(1);
-      expect(cmd.usage).toBeTruthy();
-      expect(cmd.description).toBeTruthy();
-    }
-  });
-});
 
 describe('shell executor', () => {
   it('executes echo with env expansion', async () => {

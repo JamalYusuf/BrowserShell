@@ -1,0 +1,9 @@
+{{- $dest := . -}}
+{{- $anchor := "" -}}
+{{- if strings.Contains $dest "#" -}}
+  {{- $parts := split $dest "#" -}}
+  {{- $dest = index $parts 0 -}}
+  {{- $anchor = printf "#%s" (index $parts 1) -}}
+{{- end -}}
+{{- $dest = strings.TrimPrefix "/" $dest -}}
+{{- printf "%s%s" ($dest | relURL) $anchor -}}

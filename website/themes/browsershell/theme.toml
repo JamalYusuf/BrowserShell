@@ -1,0 +1,8 @@
+name = 'BrowserShell'
+license = 'MIT'
+licenselink = 'https://github.com/jamalyusuf/browsershell/blob/main/LICENSE'
+description = 'Documentation theme for BrowserShell'
+min_version = '0.120.0'
+
+[author]
+  name = 'Jamal Yusuf'

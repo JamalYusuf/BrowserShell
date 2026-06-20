@@ -24,6 +24,7 @@ describe('VirtualFileSystem', () => {
     const names = entries.map((e) => e.name);
     expect(names).toContain('tabs');
     expect(names).toContain('bookmarks');
+    expect(names).toContain('downloads');
     expect(names).toContain('current');
   });
 
@@ -65,5 +66,13 @@ describe('VirtualFileSystem', () => {
     expect(entries[0]!.name).toMatch(/^\d{3}-/);
     expect(entries[0]!.meta?.title).toBeTruthy();
     expect(entries[0]!.meta?.url).toBeTruthy();
+  });
+
+  it('lists downloads with readable names', async () => {
+    const entries = await vfs.readdir('/downloads');
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries[0]!.name).toMatch(/^\d{3}-/);
+    expect(entries[0]!.meta?.filename).toBeTruthy();
+    expect(entries[0]!.meta?.state).toBeTruthy();
   });
 });

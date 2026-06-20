@@ -1,304 +1,165 @@
 # BrowserShell
 
-> A shell for the browser.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest%20V3-green.svg)](public/manifest.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](tsconfig.json)
 
-BrowserShell is a terminal-first operating layer that runs inside your browser and exposes browser capabilities as commands, resources, and installable packages.
+**A shell for your browser** — tabs, bookmarks, history, downloads, and page actions as terminal commands.
 
-Instead of navigating menus, settings pages, and extension popups, BrowserShell provides a unified command-line interface for interacting with tabs, bookmarks, history, downloads, devices, web applications, and future browser capabilities.
+**Website:** [jamalyusuf.github.io/browsershell](https://jamalyusuf.github.io/browsershell/)
 
-Inspired by Bash, Homebrew, Raycast, and Quake-style consoles.
+BrowserShell is a Chrome extension that overlays a Quake-style terminal on any page. Instead of hunting through menus and settings, you run keyboard-driven commands to manage browser state: switch tabs, search history, inspect the current page, clear site data, and more.
 
----
-
-## Why?
-
-Modern browsers have become operating environments.
-
-They manage:
-
-* Tabs
-* Windows
-* Bookmarks
-* History
-* Downloads
-* Storage
-* Web Applications
-* Devices
-* AI Capabilities
-* Extensions
-
-Yet these features remain fragmented across dozens of interfaces.
-
-BrowserShell provides a single, keyboard-driven layer that makes browser functionality:
-
-* Discoverable
-* Scriptable
-* Extensible
-* Fast
+Inspired by Bash, Raycast, and classic terminal drop-down consoles.
 
 ---
 
-## Vision
+## Features
 
-The browser already contains most of the primitives needed for a modern operating environment.
+- **Quake-style overlay** — press `` ` `` (configurable) to toggle a full terminal over the current page
+- **86 built-in commands** — navigation, tabs, windows, bookmarks, history, downloads, page interaction, dev tools, privacy
+- **Virtual filesystem** — browse browser resources with `ls`, `cd`, and `cat` (`/tabs`, `/bookmarks`, `/history`, …)
+- **Pipes & shell builtins** — `tabs | grep youtube`, `history | head`, aliases, `export`, bang expansions (`!gh query`)
+- **Clickable lists** — numbered output rows run follow-up commands on click (e.g. `downloads show 1`)
+- **Self-documenting** — `help`, `man <cmd>`, `apropos <term>`, tab completion
+- **Options page** — themes, fonts, prompt, hotkeys, forget presets, command explorer
+- **Testable architecture** — mockable Chrome API layer, 154 unit/integration tests
 
-BrowserShell aims to expose those primitives through a consistent shell interface.
-
-Think:
+### Example commands
 
 ```bash
-tab new
-bookmark add
-history search react
-downloads recent
+tabs                          # list open tabs
+tab switch 3                  # focus tab 3
+go github.com                 # navigate active tab
+history search react          # search browsing history
+bookmark search docs          # find bookmarks
+downloads                     # list recent downloads (click rows to reveal in Finder)
+links                         # list links on the current page
+forget --dry-run              # preview site data deletion
+siteinfo                      # privacy footprint for current site
+ai summarize                  # summarize page (Chrome built-in AI, when available)
+watch 5 tabs                # re-run a command every 5 seconds
 ```
 
-instead of:
-
-* Toolbar buttons
-* Nested menus
-* Settings pages
-* Extension popups
+Run `help` or see [docs/COMMANDS.md](docs/COMMANDS.md) for the full command reference.
 
 ---
 
-## Core Concepts
+## Quick start
 
-### Everything is a Resource
+### Requirements
 
-Browser resources are exposed through a common abstraction.
+- [Node.js](https://nodejs.org/) 20+
+- Google Chrome or Chromium (Manifest V3)
 
-Examples:
+### Build & load (development)
 
-```text
-tabs
-windows
-bookmarks
-history
-downloads
-devices
-apps
-services
+```bash
+git clone https://github.com/jamalyusuf/browsershell.git
+cd browsershell
+npm install
+npm run build
 ```
 
-Resources can be listed, searched, filtered, and manipulated through commands.
+Load the extension in Chrome:
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `dist/` folder
+
+### Usage
+
+| Action | Default |
+|--------|---------|
+| Toggle overlay | `` ` `` (backtick) |
+| Toggle overlay (shortcut) | `Ctrl+Shift+K` / `Cmd+Shift+K` |
+| Tab completion | `Tab` |
+| Command history | `↑` / `↓` |
+| Reverse search | `Ctrl+R` |
+| Clear screen | `clear` or `Ctrl+L` |
+| Options | Extension icon → Options, or `config` |
+
+Assign additional shortcuts at `chrome://extensions/shortcuts`.
 
 ---
 
-### Terminal Overlay
+## Development
 
-BrowserShell is available anywhere.
-
-Press:
-
-```text
-`
+```bash
+npm run dev          # watch build (rebuild on change; reload extension manually)
+npm test             # run test suite (154 tests)
+npm run typecheck    # TypeScript check
+npm run generate-docs  # regenerate docs/COMMANDS.md from registry
 ```
 
-A Quake-style terminal appears over the current page.
+### Project layout
 
-No context switching.
+```
+src/
+├── background/      # Service worker (overlay toggle, download actions)
+├── chrome/          # Mockable Chrome API wrapper
+├── commands/        # Command handlers (one file per command)
+├── content/         # Content script — injects Quake overlay iframe
+├── overlay/         # Terminal UI (xterm.js + shell host)
+├── options/         # React settings page
+├── page/            # Scripts injected into host page for DOM commands
+├── shell/           # Parser, executor, completion, output formatting
+├── terminal/        # TerminalHost — keyboard, history, link provider
+├── vfs/             # Virtual filesystem providers
+└── shared/          # Types, storage, themes
+```
 
-No opening a new tab.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design details.
 
-No interrupting your workflow.
+### Adding a command
+
+1. Create `src/commands/<category>/<name>.ts` using `defineCommand()`
+2. Register it in `src/commands/manifest.ts`
+3. Add the name to `tests/fixtures/expected-commands.ts`
+4. Run `npm test`
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 
 ---
 
-### Commands
+## Permissions
 
-Examples:
+BrowserShell requests broad permissions to expose browser APIs as shell commands. Every permission maps to specific commands — nothing is used for tracking or external data collection.
 
-```bash
-tab new
-tab close 3
-```
+| Permission | Why |
+|------------|-----|
+| `tabs`, `activeTab`, `sessions` | Tab/window management |
+| `bookmarks`, `history` | Bookmark and history commands |
+| `downloads` | Download listing and reveal/open |
+| `cookies`, `browsingData`, `contentSettings` | `forget`, `siteinfo`, `permissions` |
+| `management` | `extensions` command |
+| `scripting` | Page interaction (`links`, `click`, `fill`, …) |
+| `storage` | Config, aliases, history, transcript |
+| `notifications` | `notify` command |
+| `<all_urls>` | Overlay injection and page scripts on any site |
 
-```bash
-history today
-```
-
-```bash
-bookmark search work
-```
-
-```bash
-open github
-```
-
-```bash
-downloads recent
-```
+Full rationale: [docs/PERMISSIONS.md](docs/PERMISSIONS.md). Security reporting: [SECURITY.md](SECURITY.md).
 
 ---
 
-### Pipes
+## Roadmap
 
-Commands can be composed.
+Planned but **not yet implemented**:
 
-```bash
-tabs | grep youtube
-```
-
-```bash
-history today | summarize
-```
-
-```bash
-bookmarks work | export markdown
-```
-
----
-
-## Package Manager
-
-BrowserShell includes a package ecosystem inspired by Homebrew.
-
-Search packages:
-
-```bash
-pkg search weather
-```
-
-Install packages:
-
-```bash
-pkg install weather
-```
-
-Run commands:
-
-```bash
-weather
-```
-
-Packages can contribute:
-
-* Commands
-* Integrations
-* Applications
-* Services
-* Resource Providers
-
----
-
-## Example Commands
-
-### Tabs
-
-```bash
-tabs
-tab new
-tab pin 2
-tab duplicate 4
-```
-
-### Bookmarks
-
-```bash
-bookmark add
-bookmark search react
-bookmark cleanup
-```
-
-### History
-
-```bash
-history today
-history search postgres
-history summarize
-```
-
-### Downloads
-
-```bash
-downloads
-downloads recent
-downloads open
-```
-
-### AI
-
-```bash
-ai summarize page
-ai explain
-ai extract tasks
-```
-
-### Devices
-
-```bash
-devices
-device open arduino
-serial monitor arduino
-```
-
----
-
-## Future Resource Model
-
-```text
-/
-├── tabs
-├── windows
-├── bookmarks
-├── history
-├── downloads
-├── devices
-├── apps
-├── services
-├── ai
-└── user
-```
-
-BrowserShell may eventually expose browser resources through a virtual filesystem model, allowing users to navigate browser state using familiar shell concepts.
-
----
-
-## Goals
-
-* Make browser functionality discoverable
-* Create a command-line interface for browser APIs
-* Enable community-contributed commands and packages
-* Reduce dependence on complex browser UIs
-* Provide a consistent abstraction layer for browser capabilities
-* Build a platform for browser-native automation
-
----
-
-## Non-Goals
-
-BrowserShell is not:
-
-* A replacement for your operating system
-* A traditional terminal emulator
-* A browser automation framework
-* A Vim-only browser extension
-
-BrowserShell is a shell for browser resources.
+- Package manager (`pkg install`, community commands)
+- Device/serial integration
+- Scrollback-persistent clickable lists across command history
+- Chrome Web Store release
 
 ---
 
 ## Contributing
 
-BrowserShell is designed to be extensible.
-
-Contributors can create:
-
-* New commands
-* New resource providers
-* New integrations
-* New package repositories
-* New browser-native applications
-
-The long-term goal is an ecosystem where browser capabilities can be surfaced through commands without requiring users to learn new interfaces.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
 ---
 
-## Long-Term Vision
+## License
 
-Just as Bash became the standard interface for interacting with operating systems, BrowserShell aims to become the standard interface for interacting with browser-based computing.
-
-The browser is evolving into the primary computing environment for millions of users.
-
-BrowserShell provides the shell.
+[MIT](LICENSE) © 2026 Jamal Yusuf
