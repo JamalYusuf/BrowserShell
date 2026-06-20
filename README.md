@@ -12,6 +12,8 @@ BrowserShell is a Chrome extension that overlays a Quake-style terminal on any p
 
 Inspired by Bash, Raycast, and classic terminal drop-down consoles.
 
+![BrowserShell demo](demo.gif)
+
 ---
 
 ## Features

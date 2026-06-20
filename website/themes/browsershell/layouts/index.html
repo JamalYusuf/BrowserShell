@@ -42,7 +42,16 @@
       </div>
     </div>
     <div class="hero-terminal">
-      {{ partial "terminal-demo.html" . }}
+      <figure class="hero-demo">
+        <img
+          src="{{ "demo.gif" | relURL }}"
+          alt="BrowserShell terminal overlay demo — toggling the shell and running tab and navigation commands"
+          width="1920"
+          height="1011"
+          loading="eager"
+          decoding="async"
+        />
+      </figure>
       <p class="hero-terminal-hint muted">Quake-style overlay · stays on the page you're working on</p>
     </div>
   </div>

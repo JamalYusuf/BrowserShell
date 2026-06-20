@@ -34,6 +34,9 @@ jobs:
           hugo-version: 'latest'
           extended: true
 
+      - name: Copy demo assets
+        run: mkdir -p website/static && cp demo.gif website/static/demo.gif
+
       - name: Build site
         run: hugo --minify --source website
 

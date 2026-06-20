@@ -35,8 +35,9 @@
     "typecheck": "tsc --noEmit",
     "generate-docs": "tsx scripts/generate-docs.ts",
     "sync-website": "tsx scripts/sync-website-docs.ts",
-    "website": "npm run generate-docs && npm run sync-website && hugo server --source website --port 1313",
-    "website:build": "npm run generate-docs && npm run sync-website && hugo --minify --cleanDestinationDir --source website && npm run website:check-links",
+    "website:static": "mkdir -p website/static && cp demo.gif website/static/demo.gif",
+    "website": "npm run generate-docs && npm run sync-website && npm run website:static && hugo server --source website --port 1313",
+    "website:build": "npm run generate-docs && npm run sync-website && npm run website:static && hugo --minify --cleanDestinationDir --source website && npm run website:check-links",
     "website:check-links": "tsx scripts/check-website-links.ts"
   },
   "dependencies": {
