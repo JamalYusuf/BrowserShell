@@ -47,20 +47,57 @@ Variables persist in config. Referenced during command expansion.
 
 ## Bang expansions
 
-Quick substitutions without typing full commands:
+Two kinds of bangs:
+
+**History bangs** — replay prior commands:
 
 | Bang | Expands to |
 |------|-----------|
 | `!1` | History entry #1 (re-execute) |
-| `!gh query` | GitHub search URL |
-| `!so error message` | Stack Overflow search |
 | `!1 args` | History entry #1 with modified args |
 
+**Site bangs** — URL shortcuts (manage with `bang` command):
+
+| Bang | Expands to |
+|------|-----------|
+| `!gh query` | GitHub search URL |
+| `!so error message` | Stack Overflow search |
+| `!yt lofi` | YouTube search |
+
 ```bash
+bang list
+bang add wiki https://wiki.example.com/search?q=%s
 history search "react hooks"
 go !1                    # navigate to first result
 !gh useEffect cleanup    # GitHub search
 ```
+
+See [Keybindings & bangs](/docs/keybindings-and-bangs/) for rc file setup.
+
+## Built-in editor (beta)
+
+> **Note:** Simple editing works today; full Vim-style editing is **not ready yet**. Treat `edit` as early preview software.
+
+Edit notes, scripts, config, and form fields from the terminal:
+
+```bash
+touch /notes/ideas.md
+edit /notes/ideas.md
+edit /config/rc
+edit /current/inputs/email
+```
+
+| Key | Action |
+|-----|--------|
+| Arrow keys | Move cursor |
+| Type | Insert text |
+| Enter | New line |
+| Ctrl+S | Save |
+| `:w` | Save |
+| `:wq` | Save and quit |
+| Esc | Exit (warns if unsaved) |
+
+Writable paths: `/notes/`, `/scripts/`, `/config/rc`, `/config/bangs/`, `/current/inputs/`.
 
 ## Watch mode
 

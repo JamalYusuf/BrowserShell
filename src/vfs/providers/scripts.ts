@@ -57,4 +57,15 @@ export class ScriptsProvider implements VFSProvider {
     const config = await loadConfig();
     return `SCRIPT_${name}` in config.env;
   }
+
+  async unlink(path: string): Promise<void> {
+    const name = path.replace('/scripts/', '');
+    if (BUILTIN_SCRIPTS[name]) throw new Error(`Cannot remove builtin script: ${name}`);
+    const config = await loadConfig();
+    const key = `SCRIPT_${name}`;
+    if (!(key in config.env)) throw new Error(`Script not found: ${name}`);
+    const env = { ...config.env };
+    delete env[key];
+    await saveConfig({ env });
+  }
 }

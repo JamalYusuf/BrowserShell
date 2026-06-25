@@ -1,0 +1,123 @@
+# ~/.browsershellrc
+# BrowserShell 2.0 Configuration — One file to rule terminal + global hotkeys + editor + bangs + layouts
+
+# =============================================================================
+# KEYBINDINGS — Terminal + Global/Page-level (Vimium-style + more)
+# =============================================================================
+
+# Global / Page-level actions (work even when terminal is closed)
+bind f hints-current
+bind F hints-newtab
+bind gf hints-multi
+bind j scroll-down
+bind k scroll-up
+bind gg scroll-top
+bind G scroll-bottom
+bind d scroll-half-down
+bind u scroll-half-up
+bind H history-back
+bind L history-forward
+bind r reload
+bind R reload --hard
+bind gi focus-first-input
+bind / seek
+bind n seek-next
+bind N seek-prev
+bind v visual-mode
+bind yy yank-url
+bind p paste-url-current
+bind P paste-url-newtab
+bind t tab-new
+bind x tab-close
+bind J tab-prev
+bind K tab-next
+bind <leader>e edit
+bind <leader>a ai-summarize-current
+bind <leader>s split vertical
+bind <c-s> save-selection
+bind ? help-overlay
+
+# Terminal-only or shared
+bind <c-l> clear
+bind <c-r> reverse-search
+
+# Editor keybindings (when `edit` is active)
+edit-bind h cursor-left
+edit-bind j cursor-down
+edit-bind k cursor-up
+edit-bind l cursor-right
+edit-bind i insert-mode
+edit-bind Esc normal-mode
+edit-bind <c-s> save-and-exit
+edit-bind <c-w> save-and-exit
+edit-bind u undo
+edit-bind <c-r> redo
+
+# Behavior
+leader = "<space>"
+global-hotkeys = true
+global-hotkeys-exceptions = ["mail.google.com", "*.google.com/docs*"]
+insert-mode-auto = true
+
+# =============================================================================
+# BANGS — Custom site shortcuts (like DuckDuckGo bangs)
+# =============================================================================
+
+bang gh   https://github.com/search?q=%s
+bang yt   https://www.youtube.com/results?search_query=%s
+bang so   https://stackoverflow.com/search?q=%s
+bang tw   https://x.com/search?q=%s
+bang npm  https://www.npmjs.com/search?q=%s
+bang pypi https://pypi.org/search/?q=%s
+bang mdn  https://developer.mozilla.org/en-US/search?q=%s
+bang linear https://linear.app/search?q=%s
+bang notion https://www.notion.so/search?q=%s
+bang mywiki https://wiki.example.com/search?q=%s
+
+# =============================================================================
+# WORKSPACES & LAYOUTS
+# =============================================================================
+
+workspace research:
+  windows:
+    - left 60%:
+        tabs: [linear.app, github.com/jamalyusuf/browserShell]
+    - right 40%:
+        tabs: [notion.so/project-x, mail.google.com]
+  rules:
+    - when open linear + github → auto-apply research layout
+    - always put reference material on right monitor
+
+workspace writing:
+  windows:
+    - main 70%:
+        tabs: [notion.so, docs.google.com]
+    - side 30%:
+        tabs: [chat.openai.com, perplexity.ai]
+
+# =============================================================================
+# TERMINAL UX
+# =============================================================================
+
+prompt = "\[\e[32m\]\u@\h \[\e[34m\]\w\[\e[0m\] $ "
+theme = "google-warm"          # or dracula, nord, etc.
+mouse = on
+
+# =============================================================================
+# ALIASES & STARTUP
+# =============================================================================
+
+alias ll='tabs --limit 20'
+alias research='workspace load research || (go linear && tab new github.com/jamalyusuf/browserShell)'
+alias today='history today | head -15'
+
+# Run on startup
+source ~/.browsershell/startup.sh
+
+# =============================================================================
+# EDITOR PREFERENCES
+# =============================================================================
+
+editor-mode = "vim"            # or "emacs", "nano"
+editor-syntax-highlighting = true
+editor-line-numbers = true

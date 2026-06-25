@@ -40,7 +40,7 @@ Load `dist/` at `chrome://extensions` → Developer mode → Load unpacked.
 Contributors should read:
 
 - [Architecture](/docs/architecture/) — extension design, command registry, Chrome API layer
-- [Command reference](/docs/commands/reference/) — auto-generated from source (86 commands)
+- [Command reference](/docs/commands/reference/) — auto-generated from source (105 commands)
 - [Permissions](/legal/permissions/) — why each Chrome permission exists
 
 ## Contributing

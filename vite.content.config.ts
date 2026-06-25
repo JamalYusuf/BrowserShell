@@ -3,6 +3,11 @@ import { resolve } from 'path';
 
 /** Bundle content script as a single IIFE (no ES imports — required by Chrome). */
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: false,

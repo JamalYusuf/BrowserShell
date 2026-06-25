@@ -16,8 +16,8 @@ enableRobotsTXT = true
   github_license = 'https://github.com/jamalyusuf/browsershell/blob/main/LICENSE'
   github_security = 'https://github.com/jamalyusuf/browsershell/blob/main/SECURITY.md'
   github_issues = 'https://github.com/jamalyusuf/browsershell/issues'
-  extension_version = '0.1.0'
-  command_count = 88
+  extension_version = '1.0.0'
+  command_count = 105
 
 [menu]
   [[menu.main]]

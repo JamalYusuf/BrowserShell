@@ -32,6 +32,18 @@ export function tokenize(input: string): Token[] {
       continue;
     }
 
+    if (ch === '>' && input[i + 1] === '>') {
+      tokens.push({ type: 'redirect', value: '>>' });
+      i += 2;
+      continue;
+    }
+
+    if (ch === '>') {
+      tokens.push({ type: 'redirect', value: '>' });
+      i++;
+      continue;
+    }
+
     // Quoted strings
     if (ch === '"' || ch === "'") {
       const quote = ch;
@@ -53,7 +65,12 @@ export function tokenize(input: string): Token[] {
 
     // Words
     let value = '';
-    while (i < input.length && !/\s/.test(input[i]!) && !'|;'.includes(input[i]!) && !(input[i] === '&' && input[i + 1] === '&')) {
+    while (
+      i < input.length &&
+      !/\s/.test(input[i]!) &&
+      !'|;>'.includes(input[i]!) &&
+      !(input[i] === '&' && input[i + 1] === '&')
+    ) {
       if (input[i] === '\\') {
         i++;
         if (i < input.length) value += input[i];
@@ -78,15 +95,28 @@ export function expandVariables(input: string, env: Record<string, string>): str
 function tokensToCommands(tokens: Token[]): CommandNode[] {
   const commands: CommandNode[] = [];
   let current: string[] = [];
+  let pendingRedirect: { append: boolean } | null = null;
 
   for (const token of tokens) {
     if (token.type === 'pipe') {
       if (current.length) {
         commands.push({ name: current[0]!, args: current.slice(1) });
         current = [];
+        pendingRedirect = null;
       }
+    } else if (token.type === 'redirect') {
+      pendingRedirect = { append: token.value === '>>' };
     } else if (token.type === 'word') {
-      current.push(token.value);
+      if (pendingRedirect) {
+        const redirect = { path: token.value, append: pendingRedirect.append };
+        pendingRedirect = null;
+        if (current.length) {
+          commands.push({ name: current[0]!, args: current.slice(1), redirect });
+          current = [];
+        }
+      } else {
+        current.push(token.value);
+      }
     }
   }
 

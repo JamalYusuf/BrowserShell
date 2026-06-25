@@ -1,6 +1,9 @@
 import type { ShellConfig } from './types';
+import { DEFAULT_RC, RC_VERSION } from './default-rc';
 
-const DEFAULT_CONFIG: ShellConfig = {
+const LEGACY_RC_PREFIX = '# BrowserShell — power aliases';
+
+export const DEFAULT_SHELL_CONFIG: ShellConfig = {
   theme: 'redline',
   username: 'user',
   welcomeEnabled: true,
@@ -14,18 +17,7 @@ const DEFAULT_CONFIG: ShellConfig = {
     SHELL: 'browsershell',
   },
   history: [],
-  rc: [
-    '# BrowserShell — power aliases',
-    'alias g=go',
-    'alias .=qf',
-    'alias n=tab next',
-    'alias p=tab prev',
-    'alias k=tab close current',
-    'alias b=bookmark add',
-    'alias r=reload',
-    'alias ll=ls',
-    'alias lt=tabs',
-  ].join('\n'),
+  rc: DEFAULT_RC,
   toggleKey: '`',
   customThemes: [],
   forgetPresets: {
@@ -45,24 +37,75 @@ const DEFAULT_CONFIG: ShellConfig = {
   cursorStyle: 'block',
   lineHeight: 1.3,
   letterSpacing: 0,
+  leader: '<space>',
+  globalHotkeys: true,
+  globalHotkeysExceptions: [],
+  insertModeAuto: true,
+  editorMode: 'simple',
+  bangs: {},
+  workspaces: {},
+  keybindings: [],
+  rcVersion: RC_VERSION,
 };
+
+/** Ensure shipped Vimium-style binds and global-hotkeys setting are present in rc. */
+export function ensureRcDefaults(config: ShellConfig): ShellConfig {
+  const rc = config.rc ?? '';
+  if (rc.includes('bind f') && rc.includes('global-hotkeys') && rc.includes('hint-chars')) {
+    return {
+      ...config,
+      globalHotkeys: config.globalHotkeys ?? true,
+      rcVersion: RC_VERSION,
+    };
+  }
+  return {
+    ...config,
+    rc: DEFAULT_RC,
+    globalHotkeys: true,
+    rcVersion: RC_VERSION,
+  };
+}
+
+function needsRcMigration(stored: Partial<ShellConfig> | undefined): boolean {
+  if (!stored) return false;
+  const rc = stored.rc ?? '';
+  return (
+    rc.startsWith(LEGACY_RC_PREFIX) ||
+    !rc.includes('bind f') ||
+    !rc.includes('global-hotkeys') ||
+    !rc.includes('hint-chars')
+  );
+}
 
 export async function loadConfig(): Promise<ShellConfig> {
   const result = await chrome.storage.local.get('config');
   const stored = result.config as Partial<ShellConfig> | undefined;
-  // Migrate legacy theme names
+
   if (stored?.theme === 'dark') stored.theme = 'github-dark';
   if (stored?.theme === 'light') stored.theme = 'github-dark';
-  const merged = { ...DEFAULT_CONFIG, ...stored };
+
+  let merged: ShellConfig = ensureRcDefaults({ ...DEFAULT_SHELL_CONFIG, ...stored });
+
+  if (needsRcMigration(stored)) {
+    merged = ensureRcDefaults(merged);
+    await chrome.storage.local.set({ config: merged });
+  } else if (
+    stored &&
+    (merged.rc !== stored.rc || merged.globalHotkeys !== stored.globalHotkeys || (stored.rcVersion ?? 0) < RC_VERSION)
+  ) {
+    await chrome.storage.local.set({ config: merged });
+  }
+
   if (!merged.customThemes) merged.customThemes = [];
   if (!merged.username) merged.username = merged.env?.USER || 'user';
   if (merged.welcomeEnabled === undefined) merged.welcomeEnabled = true;
+  if (merged.globalHotkeys === undefined) merged.globalHotkeys = true;
   return merged;
 }
 
 export async function saveConfig(config: Partial<ShellConfig>): Promise<void> {
   const current = await loadConfig();
-  const merged = { ...current, ...config };
+  const merged = { ...current, ...config, rcVersion: RC_VERSION };
   await chrome.storage.local.set({ config: merged });
   chrome.runtime?.sendMessage?.({ type: 'config-updated', config: merged })?.catch(() => {});
 }
@@ -78,4 +121,5 @@ export async function getHistory(): Promise<string[]> {
   return config.history;
 }
 
-export { DEFAULT_CONFIG };
+/** @deprecated Use DEFAULT_SHELL_CONFIG */
+export const DEFAULT_CONFIG = DEFAULT_SHELL_CONFIG;

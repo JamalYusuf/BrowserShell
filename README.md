@@ -8,43 +8,40 @@
 
 **Website:** [jamalyusuf.github.io/BrowserShell](https://jamalyusuf.github.io/BrowserShell/)
 
-BrowserShell is a Chrome extension that overlays a Quake-style terminal on any page. Instead of hunting through menus and settings, you run keyboard-driven commands to manage browser state: switch tabs, search history, inspect the current page, clear site data, and more.
+BrowserShell is a Chrome extension that overlays a Quake-style terminal on any page. Manage tabs, bookmarks, workspaces, and page content with keyboard-driven commands — plus Vimium-style global hotkeys when the terminal is closed.
 
-Inspired by Bash, Raycast, and classic terminal drop-down consoles.
 ![BrowserShell demo](infographic.png)
 ![BrowserShell demo](demo.gif)
-
 
 ---
 
 ## Features
 
-- **Quake-style overlay** — press `` ` `` (configurable) to toggle a full terminal over the current page
-- **86 built-in commands** — navigation, tabs, windows, bookmarks, history, downloads, page interaction, dev tools, privacy
-- **Virtual filesystem** — browse browser resources with `ls`, `cd`, and `cat` (`/tabs`, `/bookmarks`, `/history`, …)
-- **Pipes & shell builtins** — `tabs | grep youtube`, `history | head`, aliases, `export`, bang expansions (`!gh query`)
-- **Clickable lists** — numbered output rows run follow-up commands on click (e.g. `downloads show 1`)
-- **Self-documenting** — `help`, `man <cmd>`, `apropos <term>`, tab completion
-- **Options page** — themes, fonts, prompt, hotkeys, forget presets, command explorer
-- **Testable architecture** — mockable Chrome API layer, 154 unit/integration tests
+- **Quake-style overlay** — press `` ` `` (configurable) to toggle a terminal over the current page
+- **100+ commands** — navigation, tabs, windows, bookmarks, history, workspaces, page interaction, dev tools, privacy
+- **Built-in editor** — `edit /notes/file.md` — arrow keys, type to edit, Ctrl+S to save
+- **Virtual filesystem** — `ls`, `cd`, `cat` on `/tabs`, `/bookmarks`, `/notes`, `/config/rc`, …
+- **Multi-window layouts** — `layout side-by-side`, `split vertical`, `workspace save/load`
+- **Vimium-style hotkeys** — link hints, scroll, omnibar, tab switching (configurable in `~/.browsershellrc`)
+- **Pipes & shell builtins** — `tabs | grep youtube`, aliases, bang expansions (`!gh query`)
+- **Self-documenting** — `help`, `man <cmd>`, tab completion
+- **Options page** — themes, fonts, prompt, hotkeys, command explorer
 
 ### Example commands
 
 ```bash
 tabs                          # list open tabs
-tab switch 3                  # focus tab 3
 go github.com                 # navigate active tab
-history search react          # search browsing history
-bookmark search docs          # find bookmarks
-downloads                     # list recent downloads (click rows to reveal in Finder)
+edit /config/rc               # edit config in terminal
+touch /notes/todo.md && edit /notes/todo.md
+layout side-by-side           # tile two windows
+workspace save research       # save multi-window layout
+history search react
 links                         # list links on the current page
 forget --dry-run              # preview site data deletion
-siteinfo                      # privacy footprint for current site
-ai summarize                  # summarize page (Chrome built-in AI, when available)
-watch 5 tabs                # re-run a command every 5 seconds
 ```
 
-Run `help` or see [docs/COMMANDS.md](docs/COMMANDS.md) for the full command reference.
+Run `help` or see [docs/COMMANDS.md](docs/COMMANDS.md) for the full reference.
 
 ---
 
@@ -55,7 +52,7 @@ Run `help` or see [docs/COMMANDS.md](docs/COMMANDS.md) for the full command refe
 - [Node.js](https://nodejs.org/) 20+
 - Google Chrome or Chromium (Manifest V3)
 
-### Build & load (development)
+### Build & load
 
 ```bash
 git clone https://github.com/jamalyusuf/browsershell.git
@@ -64,12 +61,9 @@ npm install
 npm run build
 ```
 
-Load the extension in Chrome:
-
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the `dist/` folder
+3. **Load unpacked** → select the `dist/` folder
 
 ### Usage
 
@@ -77,91 +71,75 @@ Load the extension in Chrome:
 |--------|---------|
 | Toggle overlay | `` ` `` (backtick) |
 | Toggle overlay (shortcut) | `Ctrl+Shift+K` / `Cmd+Shift+K` |
+| Open editor | `edit /notes/file.md` |
+| Save in editor | `Ctrl+S` or `:w` |
 | Tab completion | `Tab` |
 | Command history | `↑` / `↓` |
-| Reverse search | `Ctrl+R` |
-| Clear screen | `clear` or `Ctrl+L` |
-| Options | Extension icon → Options, or `config` |
+| Options | `config` or extension icon |
 
-Assign additional shortcuts at `chrome://extensions/shortcuts`.
+Assign shortcuts at `chrome://extensions/shortcuts`.
 
 ---
 
 ## Development
 
 ```bash
-npm run dev          # watch build (rebuild on change; reload extension manually)
-npm test             # run test suite (154 tests)
-npm run typecheck    # TypeScript check
-npm run generate-docs  # regenerate docs/COMMANDS.md from registry
+npm run dev          # watch build
+npm test             # test suite
+npm run typecheck    # TypeScript
+npm run generate-docs  # regenerate docs/COMMANDS.md
+npm run build:desktop  # build + sync to local load folder (if configured)
 ```
 
 ### Project layout
 
 ```
 src/
-├── background/      # Service worker (overlay toggle, download actions)
+├── background/      # Service worker
 ├── chrome/          # Mockable Chrome API wrapper
-├── commands/        # Command handlers (one file per command)
-├── content/         # Content script — injects Quake overlay iframe
-├── overlay/         # Terminal UI (xterm.js + shell host)
-├── options/         # React settings page
-├── page/            # Scripts injected into host page for DOM commands
-├── shell/           # Parser, executor, completion, output formatting
-├── terminal/        # TerminalHost — keyboard, history, link provider
-├── vfs/             # Virtual filesystem providers
-└── shared/          # Types, storage, themes
+├── commands/        # Command handlers
+├── content/         # Overlay + global hotkeys
+├── overlay/         # Terminal UI shell
+├── options/         # Settings page
+├── shell/           # Parser, executor, completion
+├── terminal/        # TerminalHost + built-in editor
+└── vfs/             # Virtual filesystem providers
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design details.
-
-### Adding a command
-
-1. Create `src/commands/<category>/<name>.ts` using `defineCommand()`
-2. Register it in `src/commands/manifest.ts`
-3. Add the name to `tests/fixtures/expected-commands.ts`
-4. Run `npm test`
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
 ## Permissions
 
-BrowserShell requests broad permissions to expose browser APIs as shell commands. Every permission maps to specific commands — nothing is used for tracking or external data collection.
+Every permission maps to specific commands — nothing is used for tracking.
 
 | Permission | Why |
 |------------|-----|
 | `tabs`, `activeTab`, `sessions` | Tab/window management |
 | `bookmarks`, `history` | Bookmark and history commands |
-| `downloads` | Download listing and reveal/open |
-| `cookies`, `browsingData`, `contentSettings` | `forget`, `siteinfo`, `permissions` |
+| `downloads` | Download listing and reveal |
+| `cookies`, `browsingData`, `contentSettings` | Privacy commands |
 | `management` | `extensions` command |
-| `scripting` | Page interaction (`links`, `click`, `fill`, …) |
-| `storage` | Config, aliases, history, transcript |
+| `scripting` | Page interaction commands |
+| `storage` | Config, notes, workspaces |
 | `notifications` | `notify` command |
-| `<all_urls>` | Overlay injection and page scripts on any site |
+| `system.display` | Window layout tiling |
+| `<all_urls>` | Overlay and page scripts |
 
-Full rationale: [docs/PERMISSIONS.md](docs/PERMISSIONS.md). Security reporting: [SECURITY.md](SECURITY.md).
+Full rationale: [docs/PERMISSIONS.md](docs/PERMISSIONS.md)
 
 ---
 
-## Roadmap
+## Chrome Web Store
 
-Planned but **not yet implemented**:
-
-- Package manager (`pkg install`, community commands)
-- Device/serial integration
-- Scrollback-persistent clickable lists across command history
-- Chrome Web Store release
+Ready for packaging from `dist/` after `npm run build`. Privacy policy and permission justifications are on the [project website](https://jamalyusuf.github.io/BrowserShell/legal/permissions/).
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

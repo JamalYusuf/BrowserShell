@@ -48,4 +48,24 @@ describe('parser', () => {
     const ast = parse('echo a; echo b');
     expect(ast.type).toBe('sequence');
   });
+
+  it('parses output redirection', () => {
+    const ast = parse('echo hello > /notes/out.txt');
+    expect(ast.type).toBe('pipeline');
+    if (ast.type === 'pipeline') {
+      expect(ast.commands[0]).toEqual({
+        name: 'echo',
+        args: ['hello'],
+        redirect: { path: '/notes/out.txt', append: false },
+      });
+    }
+  });
+
+  it('parses append redirection', () => {
+    const ast = parse('echo line >> /notes/log.txt');
+    expect(ast.type).toBe('pipeline');
+    if (ast.type === 'pipeline') {
+      expect(ast.commands[0]?.redirect).toEqual({ path: '/notes/log.txt', append: true });
+    }
+  });
 });

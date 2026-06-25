@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrowserShell",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A shell for your browser — tabs, bookmarks, history, and AI as commands.",
   "permissions": [
     "tabs",
@@ -17,7 +17,7 @@
     "sessions",
     "notifications",
     "contentSettings",
-    "identity"
+    "system.display"
   ],
   "host_permissions": ["<all_urls>"],
   "background": {

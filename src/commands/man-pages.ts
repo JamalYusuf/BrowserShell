@@ -130,4 +130,198 @@ Add lines to /config/rc (via config edit) for startup commands.`,
       },
     ],
   },
+  edit: {
+    name: 'edit',
+    title: 'Terminal Editor',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'edit [path|-]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Simple built-in editor for VFS paths and pipe input.
+Arrow keys move, type to edit, Ctrl+S or :w to save, Esc or :q to exit.
+Writable: /notes/, /scripts/, /config/rc, /config/bangs/, /current/inputs/.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ touch /notes/todo.md && edit /notes/todo.md
+  $ edit /config/rc
+  $ edit /current/inputs/email
+  $ cat /current/content.txt | edit -
+  $ bang edit gh`,
+      },
+    ],
+  },
+  bang: {
+    name: 'bang',
+    title: 'Site Shortcut Bangs',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'bang <list|add|edit|remove> [args]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Hashbang shortcuts for fast site searches. Use !name query or go !name query.
+Built-in bangs include !gh, !yt, !so, !mdn. Custom bangs use %s for the query.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ bang list
+  $ !gh BrowserShell
+  $ go !yt jazz live
+  $ bang add wiki https://wiki.example.com/search?q=%s
+  $ bang edit gh
+  $ bang remove mywiki -f`,
+      },
+    ],
+  },
+  ps: {
+    name: 'ps',
+    title: 'Tabs as Processes',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'ps [aux] [--json] [--limit N]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Lists open tabs as processes. PID is the Chrome tab ID.
+Use kill <#> or kill <PID> to close tabs. Combine with pkill for patterns.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ ps
+  $ ps aux
+  $ kill 3
+  $ pkill youtube
+  $ watch 2 top`,
+      },
+    ],
+  },
+  workspace: {
+    name: 'workspace',
+    title: 'Named Workspaces',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'workspace <save|load|list|delete> <name>',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Save and restore multi-window layouts including tab URLs, window geometry
+(left/top/width/height), shell aliases, env, and cwd. Use workview as an alias.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ workspace save research
+  $ workspace list
+  $ workspace load research
+  $ layout side-by-side
+  $ split vertical https://docs.example.com
+  $ workspace delete old -f`,
+      },
+    ],
+  },
+  layout: {
+    name: 'layout',
+    title: 'Window Layout',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'layout <preset> [ratio] [W# W#]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Tile browser windows using geometry presets. Chrome cannot split a single window;
+BrowserShell positions two windows side-by-side or stacked using left/top/width/height.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ layout side-by-side
+  $ layout main-left 60%
+  $ layout left
+  $ window position right 2`,
+      },
+    ],
+  },
+  split: {
+    name: 'split',
+    title: 'Split View',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'split <vertical|horizontal> [url] [--side left|right|top|bottom]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Open a URL in a second window and tile with the current window. vertical = left/right;
+horizontal = top/bottom.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ split vertical
+  $ split vertical github.com
+  $ split horizontal --side top`,
+      },
+    ],
+  },
+  workview: {
+    name: 'workview',
+    title: 'Workview (workspace alias)',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'workview <save|load|list|delete> <name>',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: 'Alias for workspace — save and restore named multi-window workviews.',
+      },
+    ],
+  },
+  rm: {
+    name: 'rm',
+    title: 'Remove VFS Files',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'rm <path>... [-f] [--dry-run]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Remove user-writable virtual files under /notes/, /scripts/, and /config/bangs/.
+Builtin scripts and /config/rc cannot be removed.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ rm /notes/draft.md
+  $ rm /scripts/tmp.sh -f
+  $ rm /config/bangs/old.txt`,
+      },
+    ],
+  },
+  'import-vimium-keys': {
+    name: 'import-vimium-keys',
+    title: 'Import Vimium Keybindings',
+    sections: [
+      {
+        heading: 'SYNOPSIS',
+        content: 'import-vimium-keys [--dry-run]',
+      },
+      {
+        heading: 'DESCRIPTION',
+        content: `Adds common Vimium-style global binds to ~/.browsershellrc without overwriting
+existing bindings. Includes hints, scroll, tab navigation, and seek.`,
+      },
+      {
+        heading: 'EXAMPLES',
+        content: `  $ import-vimium-keys --dry-run
+  $ import-vimium-keys
+  $ config reload`,
+      },
+    ],
+  },
 };

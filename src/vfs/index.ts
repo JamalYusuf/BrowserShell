@@ -16,6 +16,7 @@ import { TabsProvider } from './providers/tabs';
 import { TranscriptProvider } from './providers/transcript';
 import { NotesProvider } from './providers/notes';
 import { AuditProvider } from './providers/audit';
+import { WorkspacesProvider } from './providers/workspaces';
 
 export {
   TabsProvider,
@@ -39,6 +40,7 @@ const ROOT_ENTRIES: VFSEntry[] = [
   { name: 'transcript', path: '/transcript', type: 'directory' },
   { name: 'notes', path: '/notes', type: 'directory' },
   { name: 'audit', path: '/audit', type: 'directory' },
+  { name: 'workspaces', path: '/workspaces', type: 'directory' },
 ];
 
 export class VirtualFileSystem {
@@ -58,7 +60,8 @@ export class VirtualFileSystem {
     const transcript = new TranscriptProvider();
     const notes = new NotesProvider();
     const audit = new AuditProvider();
-    this.providers = [this.tabs, this.bookmarks, history, downloads, config, current, this.scripts, transcript, notes, audit];
+    const workspaces = new WorkspacesProvider();
+    this.providers = [this.tabs, this.bookmarks, history, downloads, config, current, this.scripts, transcript, notes, audit, workspaces];
   }
 
   private findProvider(path: string): VFSProvider | undefined {
@@ -104,9 +107,42 @@ export class VirtualFileSystem {
 
   async write(path: string, content: string): Promise<void> {
     const normalized = normalizePath(path);
+    if (normalized.startsWith('/current/')) {
+      const current = this.providers.find((p) => p.name === 'current') as VFSProvider & { write?: (p: string, c: string) => Promise<void> };
+      if (current?.write) return current.write(normalized, content);
+    }
+    if (normalized.startsWith('/config/')) {
+      const config = this.providers.find((p) => p.name === 'config') as VFSProvider & { write?: (p: string, c: string) => Promise<void> };
+      if (config?.write) return config.write(normalized, content);
+    }
+    if (normalized.startsWith('/notes/')) {
+      const notes = this.providers.find((p) => p.name === 'notes') as VFSProvider & { write?: (p: string, c: string) => Promise<void> };
+      if (notes?.write) return notes.write(normalized, content);
+    }
+    if (normalized.startsWith('/scripts/')) {
+      const scripts = this.providers.find((p) => p.name === 'scripts') as VFSProvider & { write?: (p: string, c: string) => Promise<void> };
+      if (scripts?.write) return scripts.write(normalized, content);
+    }
     const provider = this.findProvider(normalized) as VFSProvider & { write?: (p: string, c: string) => Promise<void> };
     if (!provider?.write) throw new Error(`Cannot write to: ${path}`);
     await provider.write(normalized, content);
+  }
+
+  async unlink(path: string): Promise<void> {
+    const normalized = normalizePath(path);
+    if (normalized.startsWith('/notes/')) {
+      const notes = this.providers.find((p) => p.name === 'notes') as VFSProvider & { unlink?: (p: string) => Promise<void> };
+      if (notes?.unlink) return notes.unlink(normalized);
+    }
+    if (normalized.startsWith('/scripts/')) {
+      const scripts = this.providers.find((p) => p.name === 'scripts') as VFSProvider & { unlink?: (p: string) => Promise<void> };
+      if (scripts?.unlink) return scripts.unlink(normalized);
+    }
+    if (normalized.startsWith('/config/bangs/')) {
+      const config = this.providers.find((p) => p.name === 'config') as VFSProvider & { unlink?: (p: string) => Promise<void> };
+      if (config?.unlink) return config.unlink(normalized);
+    }
+    throw new Error(`Cannot remove: ${path}`);
   }
 
   resolve(path: string, cwd: string): string {

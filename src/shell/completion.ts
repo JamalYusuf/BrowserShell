@@ -57,7 +57,7 @@ const SUBCOMMANDS: Record<string, string[]> = {
   watch: ['stop', 'status'],
 };
 
-const PATH_COMMANDS = new Set(['ls', 'cd', 'cat', 'open', 'close', 'source', 'grep']);
+const PATH_COMMANDS = new Set(['ls', 'cd', 'cat', 'open', 'close', 'source', 'grep', 'touch', 'edit', 'rm']);
 
 const TAB_ARG_SUBS = new Set(['switch', 'close', 'pin', 'unpin', 'duplicate']);
 
@@ -226,21 +226,21 @@ export async function getShellCompletions(ctx: CompletionContext): Promise<strin
 
 export function applyCompletion(input: string, match: string): string {
   const pipePrefix = input.includes('|') ? input.split('|').slice(0, -1).join('|') + '|' : '';
-  const segment = input.split('|').pop() ?? input;
+  const { segment, words, wordIndex, completingCommand } = parseCompletionInput(input);
   const leading = segment.match(/^\s*/)?.[0] ?? '';
   const trimmed = segment.slice(leading.length);
-
   const endsWithSpace = /\s$/.test(trimmed);
-  const parts = trimmed.split(/\s+/).filter((p, i, arr) => p || i < arr.length - 1);
 
-  if (endsWithSpace || parts.length === 0) {
-    parts.push(match);
+  const nextWords = [...words];
+  if (endsWithSpace || nextWords.length === 0) {
+    nextWords.push(match);
   } else {
-    parts[parts.length - 1] = match;
+    nextWords[wordIndex] = match;
   }
 
-  const isCommand = parts.length === 1;
-  const completed = parts.join(' ');
-  const suffix = isCommand || match.endsWith('/') ? (match.endsWith('/') ? '' : ' ') : ' ';
+  const completed = nextWords.join(' ');
+  const addTrailingSpace =
+    (completingCommand && nextWords.length === 1) || (match.endsWith('/') && !endsWithSpace);
+  const suffix = addTrailingSpace && !match.endsWith('/') ? ' ' : '';
   return pipePrefix + leading + completed + suffix;
 }

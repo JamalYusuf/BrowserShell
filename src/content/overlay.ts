@@ -1,7 +1,11 @@
 /**
- * Full-screen Quake-style overlay — self-contained content script.
- * Must not use ES imports (Chrome injects this as a classic script).
+ * Full-screen Quake-style overlay content script.
+ * Bundled as IIFE by Vite — may import shared modules.
  */
+
+import { installGlobalHotkeys, isPageModeActive } from './global-hotkeys';
+import { focusPageForHotkeys, installPageFocus, schedulePageFocusRetries } from './page-focus';
+import { invalidateConfigCache, preloadRuntimeConfig } from '@/shared/config-service';
 
 interface OverlayConfig {
   toggleKey: string;
@@ -151,12 +155,10 @@ function createOverlay(): void {
 function releaseFocus(): void {
   if (iframe) iframe.blur();
   const active = document.activeElement;
-  if (active instanceof HTMLElement) active.blur();
-  try {
-    window.focus();
-  } catch {
-    /* ignore */
+  if (active instanceof HTMLElement && active.closest('#browsershell-overlay-root')) {
+    active.blur();
   }
+  focusPageForHotkeys();
 }
 
 function show(): void {
@@ -214,38 +216,28 @@ function matchesToggleKey(e: KeyboardEvent): boolean {
   return e.key === configured;
 }
 
-function handleKeydown(e: KeyboardEvent): void {
-  if (!config.overlayEnabled) return;
+// Hotkeys must register synchronously — toggle key works without waiting on storage.
+installGlobalHotkeys({
+  isOverlayVisible: () => visible,
+  showOverlay: show,
+  matchesToggleKey: (e) => config.overlayEnabled && matchesToggleKey(e),
+  onToggleOverlay: () => toggle(),
+});
 
-  const isToggle = matchesToggleKey(e);
+installPageFocus({ isOverlayVisible: () => visible });
 
-  // Toggle key always works (even in inputs) so you can reopen after closing
-  if (isToggle) {
-    // Ignore auto-repeat while key is held — one press = one toggle
-    if (e.repeat) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    toggle();
-    return;
-  }
-
-  if (isEditableTarget(e.target)) return;
-
-  if (e.key === 'Escape' && visible) {
-    e.preventDefault();
-    hide();
-  }
-}
-
-// Bootstrap
-loadSettings().then(() => createOverlay());
+loadSettings().then(() => {
+  createOverlay();
+  focusPageForHotkeys();
+});
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.config?.newValue) {
     config = { ...DEFAULT_CONFIG, ...(changes.config.newValue as Partial<OverlayConfig>) };
     applyStyles();
     if (!config.overlayEnabled && visible) hide();
+    invalidateConfigCache();
+    void preloadRuntimeConfig();
   }
 });
 
@@ -253,11 +245,25 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'overlay-show') show();
   if (msg.type === 'overlay-hide') hide();
   if (msg.type === 'overlay-toggle' || msg.type === 'toggle-overlay') toggle();
+  if (msg.type === 'browsershell-hints') {
+    window.dispatchEvent(new CustomEvent('browsershell-hints', { detail: { newTab: !!msg.newTab } }));
+  }
   if (msg.type === 'config-updated') {
     config = { ...DEFAULT_CONFIG, ...msg.config };
     applyStyles();
+    invalidateConfigCache();
+    void preloadRuntimeConfig();
+  }
+  if (msg.type === 'focus-page') {
+    schedulePageFocusRetries();
   }
 });
 
-// Single listener only — window + document both fired per keypress, causing instant show+hide
-window.addEventListener('keydown', handleKeydown, true);
+// Overlay Escape-to-close when terminal is open (toggle handled in global-hotkeys).
+window.addEventListener('keydown', (e) => {
+  if (!visible || e.key !== 'Escape') return;
+  if (isPageModeActive()) return;
+  if (isEditableTarget(e.target)) return;
+  e.preventDefault();
+  hide();
+}, true);

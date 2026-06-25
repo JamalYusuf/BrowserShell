@@ -52,4 +52,14 @@ export class NotesProvider implements VFSProvider {
       return false;
     }
   }
+
+  async unlink(path: string): Promise<void> {
+    const name = path.replace('/notes/', '');
+    const config = await loadConfig();
+    const key = noteKey(name);
+    if (config.env[key] === undefined) throw new Error(`Note not found: ${name}`);
+    const env = { ...config.env };
+    delete env[key];
+    await saveConfig({ env });
+  }
 }

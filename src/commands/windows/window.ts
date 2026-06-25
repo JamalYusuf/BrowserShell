@@ -10,13 +10,14 @@ import {
   resolveWindowRef,
   windowErrorMessage,
 } from '../shared/window-utils';
+import { positionWindow, parseLayoutRatio } from '../workspace/layout-utils';
 import { windows } from './windows';
 
 export const window = defineCommand({
   name: 'window',
   description: 'List or manage browser windows: focus, new, close, tabs.',
-  usage: 'window | window <W#> | window <focus|new|close|tabs> [args] [-f]',
-  examples: ['window', 'window 2', 'window focus 2', 'window tabs', 'window new github.com'],
+  usage: 'window | window <W#> | window <focus|new|close|tabs|position> [args] [-f]',
+  examples: ['window', 'window 2', 'window focus 2', 'window position left', 'window position right 2 40%'],
   notes: 'No args lists windows. window <W#> focuses. window focus sets shell context for tabs.',
   category: 'tabs',
   seeAlso: ['windows', 'tabs', 'tab', 'detach'],
@@ -92,13 +93,27 @@ export const window = defineCommand({
           exitCode: 0,
         };
       }
+      case 'position': {
+        const slot = rest[0] as 'left' | 'right' | 'top' | 'bottom' | 'full' | undefined;
+        if (!slot || !['left', 'right', 'top', 'bottom', 'full'].includes(slot)) {
+          return { stderr: error('Usage: window position <left|right|top|bottom|full> [W#] [ratio]'), exitCode: 2 };
+        }
+        const ratioArg = rest.find((w) => /%$/.test(w) || (/^\d*\.?\d+$/.test(w) && Number(w) > 0 && Number(w) < 1));
+        const winArg = rest.find((w) => /^\d+$/.test(w));
+        const ref = await resolveWindowRef(winArg ?? 'current', ctx);
+        if (!ref) {
+          return { stderr: error(windowErrorMessage(winArg ?? '', await getAllWindows(ctx.chrome))), exitCode: 1 };
+        }
+        await positionWindow(ctx.chrome, ref.id, slot, parseLayoutRatio(ratioArg));
+        return { stdout: success(`Positioned W#${ref.index} — ${slot}${ratioArg ? ` (${ratioArg})` : ''}`), exitCode: 0 };
+      }
       default:
-        return { stderr: error(`Unknown: "${sub}". Try: focus, new, close, tabs`), exitCode: 2 };
+        return { stderr: error(`Unknown: "${sub}". Try: focus, new, close, tabs, position`), exitCode: 2 };
     }
   },
   getCompletions: async (partial, ctx) => {
     const parts = partial.trim().split(/\s+/);
-    const subs = ['focus', 'new', 'close', 'tabs'];
+    const subs = ['focus', 'new', 'close', 'tabs', 'position'];
     if (parts.length <= 1) return subs.filter((s) => s.startsWith(parts[0] ?? ''));
     const wins = await getAllWindows(ctx.chrome);
     return wins.map((_, i) => String(i + 1));

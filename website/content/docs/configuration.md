@@ -40,9 +40,26 @@ Example: `[\u@\h \w]$ ` → `[you@github.com /tabs]$`
 
 Default: backtick (`` ` ``). Rebind to any key. Also assign `Ctrl+Shift+K` at `chrome://extensions/shortcuts`.
 
+### Page keys
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Global hotkeys | On | Vimium-style keys when overlay is closed |
+| Insert mode auto | On | Pause hotkeys while typing in inputs |
+| Leader key | `<space>` | Prefix for chords like `<leader>e` |
+| Disabled hosts | (empty) | Comma-separated host patterns to skip |
+| Hint characters | Home row | Letters used for link hint badges |
+| Keybindings file | `/config/rc` | `bind`, `bang`, and `alias` definitions |
+
+Page hotkeys activate on load without an extra click. Configure in **Options → Page keys** or edit `bind` lines in the rc file.
+
 ### Forget presets
 
 Named profiles for `forget --preset <name>`. Define scope: cookies, cache, storage, history inclusion.
+
+### Editor (beta)
+
+The built-in `edit` command uses simple mode (arrow keys, type, **Ctrl+S** save). Full Vim editing is not ready yet — see [FAQ](/docs/faq/#built-in-editor--not-fully-ready-yet).
 
 ## rc file (startup)
 
@@ -50,6 +67,7 @@ Editable in options or via VFS:
 
 ```bash
 cat /config/rc
+edit /config/rc       # built-in editor (Ctrl+S to save)
 source /config/rc
 ```
 

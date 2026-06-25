@@ -169,6 +169,38 @@ extensions disable 2            # by index from list
 
 ---
 
+## Window layout & workspaces
+
+```bash
+layout side-by-side             # tile two windows 50/50
+layout main-left 60%            # wide left pane
+split vertical https://docs.example.com
+workspace save research         # snapshot windows + tabs
+workspace load research
+ps                              # tabs as processes
+kill 3                          # close by ps index
+pkill youtube --dry-run
+```
+
+Full guide: [Workspaces & layout](/docs/workspaces/).
+
+---
+
+## Page hotkeys & custom binds
+
+Vimium-style keys work on pages when the overlay is closed (`f`, `j`, `/`, `o`, …). Customize via rc:
+
+```bash
+bind list
+bind add ; seek
+import-vimium-keys
+config reload
+```
+
+Full guide: [Page hotkeys](/docs/page-hotkeys/), [Keybindings & bangs](/docs/keybindings-and-bangs/).
+
+---
+
 ## AI integration (today)
 
 Uses Chrome's built-in AI when available:

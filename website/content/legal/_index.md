@@ -10,8 +10,9 @@ BrowserShell is local-first and transparent about what it accesses. These pages 
 
 | Document | Description |
 |----------|-------------|
+| [Chrome Web Store permissions](/legal/chrome-web-store-permissions/) | Complete permission Q&A for Web Store review — every permission, why, when, and what data |
 | [Privacy policy](/legal/privacy-policy/) | What data BrowserShell stores, where it lives, and what we never collect |
-| [Permissions](/legal/permissions/) | Why each Chrome permission exists and which commands use it |
+| [Permissions](/legal/permissions/) | Short summary — which commands use each permission |
 | [Security](/legal/security/) | Vulnerability reporting and security model |
 
 ## Quick answers
@@ -20,7 +21,10 @@ BrowserShell is local-first and transparent about what it accesses. These pages 
 No. Everything runs locally in your browser. Config lives in `chrome.storage.local`.
 
 **Why does it need broad host access?**  
-The overlay must inject on every page so `` ` `` works everywhere. Page commands only run when you execute them. See [Permissions](/legal/permissions/).
+The overlay must inject on every page so `` ` `` works everywhere. Page commands only run when you execute them. See [Chrome Web Store permissions](/legal/chrome-web-store-permissions/).
+
+**Where is the full permission justification for Web Store review?**  
+[Chrome Web Store permissions](/legal/chrome-web-store-permissions/) — Q&A for every permission in `manifest.json`.
 
 **How do I report a security issue?**  
 Privately, per our [Security policy](/legal/security/). Do not open public GitHub issues for vulnerabilities.

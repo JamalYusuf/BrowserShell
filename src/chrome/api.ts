@@ -21,6 +21,10 @@ export interface WindowInfo {
   title?: string;
   type: string;
   state: string;
+  left?: number;
+  top?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface BookmarkNode {
@@ -113,6 +117,7 @@ export interface ChromeAPI {
     getZoom(tabId: number): Promise<number>;
     setZoom(tabId: number, zoomFactor: number): Promise<void>;
     captureVisibleTab(windowId?: number): Promise<string>;
+    sendMessage(tabId: number, message: unknown): Promise<unknown>;
   };
   bookmarks: {
     getTree(): Promise<BookmarkNode[]>;
@@ -167,6 +172,18 @@ export interface ChromeAPI {
   scripting: {
     executeScript<R>(tabId: number, func: (...args: unknown[]) => R, ...args: unknown[]): Promise<R>;
     executePageScript<R>(tabId: number, scriptName: string, args: unknown[]): Promise<R | undefined>;
+    injectContentScript(tabId: number, files: string[]): Promise<void>;
+  };
+  system?: {
+    display: {
+      getInfo(): Promise<
+        {
+          id: string;
+          isPrimary?: boolean;
+          workArea?: { left: number; top: number; width: number; height: number };
+        }[]
+      >;
+    };
   };
   ai?: {
     summarizer?: {
@@ -212,6 +229,10 @@ function mapWindow(win: chrome.windows.Window): WindowInfo {
     title: win.tabs?.find((t) => t.active)?.title,
     type: win.type ?? 'normal',
     state: win.state ?? 'normal',
+    left: win.left,
+    top: win.top,
+    width: win.width,
+    height: win.height,
   };
 }
 
@@ -350,6 +371,7 @@ export function createChromeAPI(): ChromeAPI {
         }
         return chrome.tabs.captureVisibleTab({ format: 'png' });
       },
+      sendMessage: async (tabId, message) => chrome.tabs.sendMessage(tabId, message),
     },
     bookmarks: {
       getTree: async () => {
@@ -507,6 +529,9 @@ export function createChromeAPI(): ChromeAPI {
         });
         return results[0]?.result as never;
       },
+      injectContentScript: async (tabId, files) => {
+        await chrome.scripting.executeScript({ target: { tabId }, files });
+      },
       executePageScript: async (tabId, scriptName, args) => {
         const check = await chrome.scripting.executeScript({
           target: { tabId },
@@ -533,6 +558,31 @@ export function createChromeAPI(): ChromeAPI {
         return results[0]?.result as never;
       },
     },
+    system: chrome.system?.display
+      ? {
+          display: {
+            getInfo: () =>
+              new Promise((resolve) => {
+                chrome.system.display.getInfo((displays) => {
+                  resolve(
+                    displays.map((d) => ({
+                      id: d.id,
+                      isPrimary: d.isPrimary,
+                      workArea: d.workArea
+                        ? {
+                            left: d.workArea.left,
+                            top: d.workArea.top,
+                            width: d.workArea.width,
+                            height: d.workArea.height,
+                          }
+                        : undefined,
+                    })),
+                  );
+                });
+              }),
+          },
+        }
+      : undefined,
     ai: ai
       ? {
           summarizer: ai.summarizer
@@ -633,6 +683,7 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
       getZoom: async () => 1,
       setZoom: async () => {},
       captureVisibleTab: async () => 'data:image/png;base64,mock',
+      sendMessage: async () => ({}),
     },
     bookmarks: {
       getTree: async () => [
@@ -783,10 +834,22 @@ export function createMockChromeAPI(overrides: Partial<ChromeAPI> = {}): ChromeA
     },
     scripting: {
       executeScript: async (_tabId, func, ...args) => func(...args) as never,
+      injectContentScript: async () => {},
       executePageScript: async (_tabId, scriptName, args) => {
         const fn = PAGE_SCRIPT_REGISTRY[scriptName as keyof typeof PAGE_SCRIPT_REGISTRY];
         if (!fn) throw new Error(`Unknown page script: ${scriptName}`);
         return fn(...args) as never;
+      },
+    },
+    system: {
+      display: {
+        getInfo: async () => [
+          {
+            id: 'display-1',
+            isPrimary: true,
+            workArea: { left: 0, top: 25, width: 1440, height: 875 },
+          },
+        ],
       },
     },
     ai: undefined,

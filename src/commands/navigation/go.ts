@@ -5,18 +5,36 @@ import { getWindowTabs } from '../shared/tab-utils';
 import { getAllWindows } from '../shared/window-utils';
 import { truncateTitle } from '../shared/text';
 import { error, success } from '@/shell/output';
+import { bangToCommand, parseBangInvocation } from '@/shared/bangs';
+import { loadConfig } from '@/shared/storage';
+import { bookmark } from '../bookmarks/bookmark';
 
 export const go = defineCommand({
   name: 'go',
-  description: 'Smart go: switch tab, open bookmark/URL/history, or search.',
-  usage: 'go <query|url>',
-  examples: ['go github', 'go gmail.com', 'go react docs', 'go https://example.com'],
+  description: 'Smart go: switch tab, open bookmark/URL/history, bang, or search.',
+  usage: 'go <query|url|!bang query>',
+  examples: ['go github', 'go !gh BrowserShell', 'go gmail.com', 'go https://example.com'],
   category: 'navigation',
-  notes: 'Tries: open tab (any window) → bookmark → URL → history → Google search.',
-  seeAlso: ['qf', 'open', 'tab', 'find'],
+  notes: 'Tries: bang → open tab (any window) → bookmark → URL → history → Google search.',
+  seeAlso: ['qf', 'open', 'tab', 'find', 'bang'],
   handler: async (args, ctx) => {
-    const query = filterFlags(args).join(' ').trim();
+    let query = filterFlags(args).join(' ').trim();
     if (!query) return { stderr: error('Usage: go <query|url>'), exitCode: 2 };
+
+    const bangParsed = parseBangInvocation(`go ${query}`);
+    if (bangParsed) {
+      const cfg = await loadConfig();
+      const cmd = bangToCommand(bangParsed.name, bangParsed.query, cfg.bangs);
+      if (cmd?.startsWith('bookmark ')) {
+        const bmArgs = cmd.slice('bookmark '.length).split(/\s+/).filter(Boolean);
+        return bookmark.handler(bmArgs, ctx);
+      }
+      if (cmd?.startsWith('go ')) {
+        query = cmd.slice(3);
+      } else if (cmd) {
+        return { stderr: error(`Unresolved bang: !${bangParsed.name}`), exitCode: 1 };
+      }
+    }
 
     const q = query.toLowerCase();
     const wins = await getAllWindows(ctx.chrome);

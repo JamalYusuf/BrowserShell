@@ -44,7 +44,22 @@ Try these commands:
 help                  # list commands by category
 tabs                  # show open tabs
 go example.com        # navigate active tab
+touch /notes/todo.md && edit /notes/todo.md   # create and edit a note
 man tab               # full manual for tab command
+```
+
+### Page hotkeys (Vimium-style)
+
+With the overlay closed, use keys like `f` (link hints), `j`/`k` (scroll), `/` (find), `o` (omnibar), and `gg`/`G` (top/bottom) on any http(s) page. Hotkeys work as soon as the page loads — no extra click needed. Press `?` on a page for the full cheat sheet.
+
+### Built-in editor (beta)
+
+> **Note:** The in-terminal editor is early preview — simple mode works, but full Vim editing is not ready yet.
+
+```bash
+edit /notes/todo.md   # arrow keys to move, type to edit
+# Ctrl+S to save · Esc to exit
+edit /config/rc       # edit keybindings and aliases
 ```
 
 Press **`` ` ``** again to hide the overlay. Your page stays underneath — no context switch.
@@ -117,5 +132,6 @@ search <query>        # fuzzy command suggestions
 ## Next steps
 
 - [Superuser guide](/docs/superuser/) — power workflows and aliases
-- [Command reference](/docs/commands/reference/) — all 86 commands
+- [Command reference](/docs/commands/reference/) — all 105 commands
+- [Keyboard shortcuts](/docs/keyboard-shortcuts/) — overlay, terminal, and page keys
 - [Permissions](/legal/permissions/) — why the extension needs each Chrome permission

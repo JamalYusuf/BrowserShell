@@ -3,7 +3,7 @@ title: Future
 description: Where BrowserShell is headed — packages, site hooks, and AI-native browsing.
 ---
 
-BrowserShell v0.1 is a working shell with 86 commands. The architecture is deliberately extensible. Here's what's next.
+BrowserShell v1.0 is a working shell with 105 commands. The architecture is deliberately extensible. Here's what's next.
 
 ---
 

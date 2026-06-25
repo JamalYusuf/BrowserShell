@@ -16,7 +16,7 @@ ls /
 ```text
 tabs/        bookmarks/   history/     downloads/
 current@     config/      scripts/     transcript/
-notes/       audit/
+notes/       audit/       workspaces/
 ```
 
 | Path | Contents |
@@ -26,8 +26,11 @@ notes/       audit/
 | `/history` | Browsing history entries |
 | `/downloads` | Download metadata |
 | `/current` | Symlink to active tab |
-| `/config` | Shell configuration files |
-| `/scripts` | User scripts |
+| `/config` | Shell configuration (`rc`, bangs, workspaces) |
+| `/config/rc` | Keybindings, aliases, bangs, settings |
+| `/config/bangs/` | Custom `!bang` URL templates |
+| `/config/workspaces/` | Saved multi-window layouts |
+| `/scripts` | User shell scripts |
 | `/transcript` | Session transcripts |
 | `/notes` | User notes (markdown) |
 | `/audit` | Command audit log |
@@ -88,14 +91,19 @@ log tail /audit/session.log
 
 Useful for reviewing what you ran, sharing workflows, or debugging.
 
-## Notes
+## Notes & writable files
 
 ```bash
-echo "idea for feature" >> /notes/ideas.md
+touch /notes/todo.md              # create empty file
+edit /notes/todo.md               # edit in terminal (beta)
 cat /notes/ideas.md
+rm /notes/old-draft.md            # delete writable file
+rm /scripts/tmp.sh -f
 ```
 
-Notes persist in `chrome.storage.local`.
+Writable paths: `/notes/`, `/scripts/`, `/config/rc`, `/config/bangs/`, `/current/inputs/`.
+
+Notes and scripts persist in `chrome.storage.local`.
 
 {{< note >}}
 The VFS is virtual — files don't exist on disk. Paths are a uniform interface to browser APIs.

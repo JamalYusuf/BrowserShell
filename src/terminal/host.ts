@@ -27,6 +27,9 @@ import { FONT_PRESETS, getThemePreset } from '@/shared/themes';
 import { BUILD_STAMP, BUILD_VERSION } from '@/shared/build-info';
 import { fetchWelcomeSnapshot, formatWelcomeLines } from '@/shared/welcome';
 import { matchesToggleKey, toggleKeyLabel } from '@/shared/toggle-key';
+import { TerminalEditor } from '@/terminal/editor';
+import { KeySequenceEngine, eventToStroke, scopeUsesLeader } from '@/shared/key-sequence';
+import { bootstrapRuntimeConfig, getCachedRuntimeConfig, preloadRuntimeConfig } from '@/shared/config-service';
 
 /**
  * xterm.js terminal host for the overlay shell.
@@ -46,6 +49,7 @@ export class TerminalHost {
   private searchAddon: SearchAddon;
   private executor: ShellExecutor;
   private inputBuffer = '';
+  private inputCursor = 0;
   private history: string[] = [];
   private historyIndex = -1;
   private cwd = '/';
@@ -64,6 +68,8 @@ export class TerminalHost {
   private linkRowHover: LinkRowHover;
   private watchTimer: ReturnType<typeof setInterval> | null = null;
   private lastWelcomeAt = 0;
+  private editor: TerminalEditor | null = null;
+  private keyEngine = new KeySequenceEngine();
 
   constructor(private options: TerminalHostOptions) {
     registerAllCommands();
@@ -127,6 +133,8 @@ export class TerminalHost {
 
     this.config = await loadConfig();
     this.applyConfig(this.config);
+    bootstrapRuntimeConfig();
+    void preloadRuntimeConfig();
 
     await this.executor.initialize();
     this.cwd = this.executor.getCwd();
@@ -162,15 +170,32 @@ export class TerminalHost {
       if (e.data?.type === 'browsershell-focus') {
         void this.writeWelcomeBanner({ redrawPrompt: true });
         this.terminal.focus();
+        void this.consumePendingCommand();
       }
     });
 
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.pendingCommand?.newValue) {
+        void this.consumePendingCommand();
+      }
+    });
+
+    await this.consumePendingCommand();
+  }
+
+  private async consumePendingCommand(): Promise<void> {
+    if (this.running || this.editor) return;
     const pending = await chrome.storage.local.get('pendingCommand');
-    if (pending.pendingCommand) {
-      await chrome.storage.local.remove('pendingCommand');
-      this.inputBuffer = pending.pendingCommand as string;
-      this.terminal.write(this.inputBuffer);
-    }
+    const command = pending.pendingCommand as string | undefined;
+    if (!command) return;
+    await chrome.storage.local.remove('pendingCommand');
+    this.inputBuffer = '';
+    this.terminal.write('\r\x1b[K');
+    await this.runCommand(command);
+    this.cwd = this.executor.getCwd();
+    await this.refreshHostDomain();
+    await this.refreshShellUser();
+    this.writePrompt();
   }
 
   focus(): void {
@@ -240,6 +265,8 @@ export class TerminalHost {
 
   private async writeWelcomeBanner(opts?: { redrawPrompt?: boolean }): Promise<void> {
     if (this.config?.welcomeEnabled === false) return;
+    if (sessionStorage.getItem('browsershell-welcome-shown')) return;
+    sessionStorage.setItem('browsershell-welcome-shown', '1');
     const now = Date.now();
     if (now - this.lastWelcomeAt < 4000) return;
     this.lastWelcomeAt = now;
@@ -438,6 +465,12 @@ export class TerminalHost {
   }
 
   private handleKeyEvent(e: KeyboardEvent): boolean {
+    if (this.editor) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') return true;
+      if (e.key === 'Escape') return true;
+      return false;
+    }
+
     if (e.ctrlKey && e.shiftKey && e.key === 'F') return false;
 
     if (e.ctrlKey && e.key === 'l') {
@@ -463,6 +496,7 @@ export class TerminalHost {
       }
       this.terminal.write('^C\n');
       this.inputBuffer = '';
+      this.inputCursor = 0;
       this.historyIndex = -1;
       this.writePrompt();
       return false;
@@ -478,11 +512,47 @@ export class TerminalHost {
       return false;
     }
 
+    if (this.tryTerminalBinding(e)) return false;
+    return true;
+  }
+
+  private tryTerminalBinding(e: KeyboardEvent): boolean {
+    const runtime = getCachedRuntimeConfig() ?? bootstrapRuntimeConfig();
+    const leader = runtime.shell.leader ?? '<space>';
+
+    const stroke = eventToStroke(e, leader);
+    if (!stroke) return false;
+
+    const result = this.keyEngine.match(stroke, runtime.sequences, 'terminal');
+    if (!result) {
+      // Leader is for page/global chords (<leader>e). In the terminal, pass Space through
+      // unless the user has explicit terminal binds prefixed with <leader>.
+      if (stroke.leader && !scopeUsesLeader(runtime.sequences, 'terminal')) {
+        this.keyEngine.reset();
+        return false;
+      }
+      if (stroke.leader) return true;
+      return false;
+    }
+
+    if (result.action === 'clear') {
+      this.terminal.clear();
+      this.writePrompt();
+    } else if (result.action === 'reverse-search') {
+      this.startReverseSearch();
+    } else if (result.action === 'edit') {
+      void this.runCommand('edit');
+    }
     return true;
   }
 
   private async handleInput(data: string): Promise<void> {
     if (this.running) return;
+
+    if (this.editor) {
+      this.editor.handleInput(data);
+      return;
+    }
 
     if (this.reverseSearchActive) {
       await this.handleReverseSearchInput(data);
@@ -495,6 +565,7 @@ export class TerminalHost {
       const command = this.inputBuffer.trim();
       this.terminal.write('\n');
       this.inputBuffer = '';
+      this.inputCursor = 0;
       this.historyIndex = -1;
       this.lastCompletions = [];
 
@@ -509,15 +580,45 @@ export class TerminalHost {
       this.cwd = this.executor.getCwd();
       await this.refreshHostDomain();
       await this.refreshShellUser();
-      this.writePrompt();
+      if (!this.editor) this.writePrompt();
       return;
     }
 
     if (code === 127 || data === '\x7f') {
-      if (this.inputBuffer.length > 0) {
-        this.inputBuffer = this.inputBuffer.slice(0, -1);
-        this.terminal.write('\b \b');
+      if (this.inputCursor > 0) {
+        this.inputBuffer =
+          this.inputBuffer.slice(0, this.inputCursor - 1) + this.inputBuffer.slice(this.inputCursor);
+        this.inputCursor--;
+        this.redrawInputLine();
       }
+      return;
+    }
+
+    if (data === '\x1b[D') {
+      if (this.inputCursor > 0) {
+        this.inputCursor--;
+        this.terminal.write('\x1b[D');
+      }
+      return;
+    }
+
+    if (data === '\x1b[C') {
+      if (this.inputCursor < this.inputBuffer.length) {
+        this.inputCursor++;
+        this.terminal.write('\x1b[C');
+      }
+      return;
+    }
+
+    if (data === '\x01') {
+      this.inputCursor = 0;
+      this.redrawInputLine();
+      return;
+    }
+
+    if (data === '\x05') {
+      this.inputCursor = this.inputBuffer.length;
+      this.redrawInputLine();
       return;
     }
 
@@ -570,18 +671,23 @@ export class TerminalHost {
     }
 
     if (code >= 32) {
-      this.inputBuffer += data;
-      this.terminal.write(data);
+      this.inputBuffer =
+        this.inputBuffer.slice(0, this.inputCursor) + data + this.inputBuffer.slice(this.inputCursor);
+      this.inputCursor += data.length;
+      this.redrawInputLine();
     }
   }
 
+  private redrawInputLine(): void {
+    this.terminal.write('\r\x1b[K' + this.formatPromptInline() + this.inputBuffer);
+    const tail = this.inputBuffer.length - this.inputCursor;
+    if (tail > 0) this.terminal.write(`\x1b[${tail}D`);
+  }
+
   private replaceInput(newInput: string): void {
-    while (this.inputBuffer.length > 0) {
-      this.terminal.write('\b \b');
-      this.inputBuffer = this.inputBuffer.slice(0, -1);
-    }
     this.inputBuffer = newInput;
-    this.terminal.write(newInput);
+    this.inputCursor = newInput.length;
+    this.redrawInputLine();
   }
 
   private async complete(): Promise<void> {
@@ -713,9 +819,37 @@ export class TerminalHost {
       const result = await this.executor.execute(command);
       this.setClickContext(result.clickableList ?? null);
       this.applyWatch(result);
+
+      const editorPayload = (result.structured as { editor?: boolean; path?: string; content?: string } | undefined);
+      if (editorPayload?.editor) {
+        this.startEditor(editorPayload.path, editorPayload.content ?? '');
+      }
+
+      if ((result.structured as { reload?: boolean } | undefined)?.reload) {
+        await this.executor.reloadConfig();
+        this.config = await loadConfig();
+        this.applyConfig(this.config);
+      }
     } finally {
       this.running = false;
     }
+  }
+
+  private startEditor(path?: string, content = ''): void {
+    const runtime = getCachedRuntimeConfig() ?? bootstrapRuntimeConfig();
+    this.editor = new TerminalEditor({
+      terminal: this.terminal,
+      vfs: this.executor.getVfs(),
+      cwd: this.cwd,
+      filename: path,
+      initialContent: content,
+      bindings: runtime.sequences.filter((b) => b.scope === 'editor'),
+      onExit: () => {
+        this.editor = null;
+        this.writePrompt();
+      },
+    });
+    this.editor.activate();
   }
 }
 

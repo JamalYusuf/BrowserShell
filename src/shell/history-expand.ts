@@ -1,16 +1,7 @@
 /** Shell history and bang-search expansions. */
 
-const BANG_URLS: Record<string, (query: string) => string> = {
-  g: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
-  gh: (q) => `https://github.com/search?q=${encodeURIComponent(q)}`,
-  yt: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
-  w: (q) => `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(q)}`,
-  so: (q) => `https://stackoverflow.com/search?q=${encodeURIComponent(q)}`,
-};
-
-const BANG_COMMANDS: Record<string, (query: string) => string> = {
-  bm: (q) => `bookmark ${q}`,
-};
+import { bangToCommand, parseBangInvocation } from '@/shared/bangs';
+import { loadConfig } from '@/shared/storage';
 
 export function expandShellHistory(input: string, lastCommand: string): string {
   const trimmed = input.trim();
@@ -21,18 +12,18 @@ export function expandShellHistory(input: string, lastCommand: string): string {
   return input;
 }
 
+export async function expandBangAsync(input: string): Promise<string> {
+  const parsed = parseBangInvocation(input);
+  if (!parsed) return input;
+  const cfg = await loadConfig();
+  const cmd = bangToCommand(parsed.name, parsed.query, cfg.bangs);
+  return cmd ?? input;
+}
+
+/** Sync expansion using built-in bangs only (for parser hot path). */
 export function expandBang(input: string): string {
-  const trimmed = input.trim();
-  const match = trimmed.match(/^!([a-z]{1,4})\s+(.+)$/i);
-  if (!match) return input;
-
-  const bang = match[1]!.toLowerCase();
-  const query = match[2]!.trim();
-  const cmd = BANG_COMMANDS[bang];
-  if (cmd) return cmd(query);
-
-  const builder = BANG_URLS[bang];
-  if (!builder) return input;
-
-  return `go ${builder(query)}`;
+  const parsed = parseBangInvocation(input);
+  if (!parsed) return input;
+  const cmd = bangToCommand(parsed.name, parsed.query);
+  return cmd ?? input;
 }

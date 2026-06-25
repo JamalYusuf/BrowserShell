@@ -191,6 +191,21 @@ Display formatted manual page for a command or guide.
 
 **See also:** `help`, `apropos`
 
+### `rm`
+
+Remove user-writable VFS files (notes, scripts, custom bangs).
+
+**Usage:** `rm <path>... [-f] [--dry-run]`
+
+**Examples:**
+
+- `rm /notes/old-draft.md`
+- `rm /scripts/tmp.sh`
+- `rm /config/bangs/mywiki.txt -f`
+- `ls /notes | grep draft | xargs rm -f`
+
+**See also:** `touch`, `edit`, `ls`, `bang remove`
+
 ### `source`
 
 Execute commands from a script file.
@@ -203,6 +218,82 @@ Execute commands from a script file.
 - `source /config/rc`
 
 **See also:** `alias`, `export`
+
+### `touch`
+
+Create an empty file or update an existing writable VFS path.
+
+**Usage:** `touch <path>...`
+
+**Examples:**
+
+- `touch /notes/todo.md`
+- `touch /scripts/morning.sh`
+- `touch /notes/ideas.txt && edit /notes/ideas.txt`
+
+**See also:** `edit`, `cat`, `ls`, `mkdir`
+
+## config
+
+### `bind`
+
+List, add, or remove keybindings (stored in ~/.browsershellrc).
+
+**Usage:** `bind [list|add <keys> <action>|remove <keys>] [--json]`
+
+**Examples:**
+
+- `bind list`
+- `bind add f hints-current`
+- `bind add <leader>e edit`
+- `bind remove f`
+- `edit /config/rc`
+
+**See also:** `config`, `edit-bind`, `edit`
+
+### `config`
+
+View or edit shell configuration.
+
+**Usage:** `config <list|get|set|show|reload> [key] [value]`
+
+**Examples:**
+
+- `config list`
+- `config show`
+- `config reload`
+- `config get theme`
+- `config set overlayOpacity 0.9`
+
+**See also:** `alias`, `export`, `bind`, `user`
+
+### `edit-bind`
+
+List, add, or remove editor keybindings (in ~/.browsershellrc).
+
+**Usage:** `edit-bind [list|add <keys> <action>|remove <keys>]`
+
+**Examples:**
+
+- `edit-bind list`
+- `edit-bind add i insert-mode`
+- `edit /config/rc`
+
+**See also:** `bind`, `edit`, `config`
+
+### `import-vimium-keys`
+
+Import common Vimium-style global keybindings into ~/.browsershellrc.
+
+**Usage:** `import-vimium-keys [--dry-run]`
+
+**Examples:**
+
+- `import-vimium-keys`
+- `import-vimium-keys --dry-run`
+- `config reload`
+
+**See also:** `bind`, `config`, `edit`
 
 ## history
 
@@ -238,6 +329,22 @@ Go back in the current tab history.
 
 - `back`
 - `back 2`
+
+### `bang`
+
+Manage site shortcut bangs (!gh, !yt, etc.).
+
+**Usage:** `bang <list|add|edit|remove> [args] [--json] [-f]`
+
+**Examples:**
+
+- `bang list`
+- `bang add mywiki https://wiki.example.com/search?q=%s`
+- `bang edit gh`
+- `!gh BrowserShell`
+- `go !yt lo-fi beats`
+
+**See also:** `go`, `search`, `config`
 
 ### `cd`
 
@@ -281,18 +388,18 @@ Go forward in the current tab history.
 
 ### `go`
 
-Smart go: switch tab, open bookmark/URL/history, or search.
+Smart go: switch tab, open bookmark/URL/history, bang, or search.
 
-**Usage:** `go <query|url>`
+**Usage:** `go <query|url|!bang query>`
 
 **Examples:**
 
 - `go github`
+- `go !gh BrowserShell`
 - `go gmail.com`
-- `go react docs`
 - `go https://example.com`
 
-**See also:** `qf`, `open`, `tab`, `find`
+**See also:** `qf`, `open`, `tab`, `find`, `bang`
 
 ### `here`
 
@@ -366,6 +473,97 @@ Fuzzy search tabs, bookmarks, history, and downloads.
 - `search --downloads pdf`
 
 **See also:** `go`, `find`, `qf`, `bookmark`
+
+## page
+
+### `hints`
+
+Show Vimium-style link hints on the current page.
+
+**Usage:** `hints [--newtab]`
+
+**Examples:**
+
+- `hints`
+- `hints --newtab`
+- `bind list`
+
+**See also:** `links`, `link`, `bind`, `scroll`
+
+## process
+
+### `kill`
+
+Close a tab by list number or tab ID (PID).
+
+**Usage:** `kill <n|tab-id> [-9] [--dry-run]`
+
+**Examples:**
+
+- `ps`
+- `kill 3`
+- `kill 142857 -9`
+- `kill 7 --dry-run`
+
+**See also:** `pkill`, `ps`, `tab close`
+
+### `pkill`
+
+Close tabs matching a title or URL pattern.
+
+**Usage:** `pkill <pattern> [-f] [--dry-run] [--json]`
+
+**Examples:**
+
+- `pkill youtube`
+- `pkill github -f`
+- `pkill ads --dry-run`
+
+**See also:** `kill`, `ps`, `tabs`
+
+### `ps`
+
+List open tabs as processes (PID = tab ID).
+
+**Usage:** `ps [aux] [--json] [--limit N]`
+
+**Examples:**
+
+- `ps`
+- `ps aux`
+- `ps --json`
+- `kill 7`
+- `pkill youtube`
+
+**See also:** `top`, `kill`, `pkill`, `tabs`, `tab`
+
+### `renice`
+
+Change tab priority (pin/unpin as nice value proxy).
+
+**Usage:** `renice <n|tab-id> <priority>`
+
+**Examples:**
+
+- `renice 3 -5`
+- `renice 142857 10`
+
+**See also:** `ps`, `pin`, `unpin`
+
+### `top`
+
+Live-updating tab process view (refreshes every 2s until Ctrl+C or watch stop).
+
+**Usage:** `top [--json] [--once]`
+
+**Examples:**
+
+- `top`
+- `top --once`
+- `watch 2 top`
+- `ps`
+
+**See also:** `ps`, `watch`, `kill`
 
 ## tabs
 
@@ -556,15 +754,15 @@ Unpin the current tab (shortcut for tab unpin).
 
 List or manage browser windows: focus, new, close, tabs.
 
-**Usage:** `window | window <W#> | window <focus|new|close|tabs> [args] [-f]`
+**Usage:** `window | window <W#> | window <focus|new|close|tabs|position> [args] [-f]`
 
 **Examples:**
 
 - `window`
 - `window 2`
 - `window focus 2`
-- `window tabs`
-- `window new github.com`
+- `window position left`
+- `window position right 2 40%`
 
 **See also:** `windows`, `tabs`, `tab`, `detach`
 
@@ -646,20 +844,6 @@ Copy tab URL, title, markdown link, or page selection to clipboard.
 
 **See also:** `here`, `pick`
 
-### `config`
-
-View or edit shell configuration.
-
-**Usage:** `config <get|set|list> [key] [value]`
-
-**Examples:**
-
-- `config list`
-- `config get theme`
-- `config set overlayOpacity 0.9`
-
-**See also:** `alias`, `export`
-
 ### `cookies`
 
 List or clear cookies for the current page.
@@ -691,6 +875,21 @@ List, open, show, or remove browser downloads.
 - `downloads clear -f`
 
 **See also:** `open`, `grep`
+
+### `edit`
+
+Open the built-in terminal editor for a VFS path or stdin.
+
+**Usage:** `edit [path|-] [--help]`
+
+**Examples:**
+
+- `edit`
+- `touch /notes/todo.md && edit /notes/todo.md`
+- `edit /config/rc`
+- `cat /current/content.txt | edit -`
+
+**See also:** `touch`, `cat`, `bang`, `config`, `edit-bind`
 
 ### `extensions`
 
@@ -1297,4 +1496,67 @@ Show, set, or adjust page zoom.
 - `zoom out 2`
 
 **See also:** `here`, `scroll`
+
+## workspace
+
+### `layout`
+
+Tile browser windows using left/top/width/height geometry.
+
+**Usage:** `layout <side-by-side|main-left|main-right|top-bottom|left|right|full|reset> [ratio] [W# W#]`
+
+**Examples:**
+
+- `layout side-by-side`
+- `layout main-left 60%`
+- `layout top-bottom`
+- `layout left`
+- `layout right 1 2`
+- `workspace save research`
+
+**See also:** `split`, `window`, `workspace`
+
+### `split`
+
+Split view — tile current window and open URL in a second window.
+
+**Usage:** `split <vertical|horizontal> [url] [--side left|right|top|bottom]`
+
+**Examples:**
+
+- `split vertical`
+- `split vertical https://docs.example.com`
+- `split horizontal github.com`
+- `split v about:blank --side left`
+
+**See also:** `layout`, `window`, `workspace`
+
+### `workspace`
+
+Save, load, list, or delete named multi-window workspaces.
+
+**Usage:** `workspace <save|load|list|delete> <name> [--json] [-f]`
+
+**Examples:**
+
+- `workspace list`
+- `workspace save research`
+- `workspace load research`
+- `workspace delete old-setup -f`
+
+**See also:** `session`, `sessions`, `recent`, `ps`
+
+### `workview`
+
+Alias for workspace — save and restore multi-window layouts.
+
+**Usage:** `workview <save|load|list|delete> <name>`
+
+**Examples:**
+
+- `workview save coding`
+- `workview load coding`
+- `workview list`
+
+**See also:** `workspace`, `layout`, `split`
 

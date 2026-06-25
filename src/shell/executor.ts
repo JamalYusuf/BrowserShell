@@ -3,10 +3,11 @@
  * and dispatches to registered command handlers.
  */
 import type { ChromeAPI } from '@/chrome/api';
-import { loadConfig, saveConfig } from '@/shared/storage';
+import { saveConfig } from '@/shared/storage';
+import { loadRuntimeConfig } from '@/shared/config-service';
 import type { ASTNode, CommandNode, CommandResult, ExecutionContext } from '@/shared/types';
 import { VirtualFileSystem } from '@/vfs';
-import { expandBang, expandShellHistory } from './history-expand';
+import { expandBangAsync, expandShellHistory } from './history-expand';
 import { expandVariables, parse } from './parser';
 import { getRegistry } from './registry';
 import { error, stripAnsi, suggestCommand } from './output';
@@ -40,19 +41,27 @@ export class ShellExecutor {
   }
 
   async initialize(): Promise<void> {
-    const config = await loadConfig();
+    const runtime = await loadRuntimeConfig();
+    const config = runtime.shell;
     const username = config.username || config.env.USER || 'user';
     this.env = { ...config.env, USER: username };
     this.aliases = { ...config.aliases };
     await this.runRc(config.rc);
   }
 
+  async reloadConfig(): Promise<void> {
+    const runtime = await loadRuntimeConfig(true);
+    const config = runtime.shell;
+    this.aliases = { ...config.aliases };
+    await this.runRc(config.rc);
+  }
+
   private async runRc(rc: string): Promise<void> {
+    const { applyRcToStorage } = await import('@/commands/utility/config');
+    await applyRcToStorage(rc);
     const lines = rc.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
     for (const line of lines) {
-      if (line.startsWith('alias ')) {
-        await this.execute(line, { silent: true });
-      } else if (line.startsWith('export ')) {
+      if (line.startsWith('alias ') || line.startsWith('export ')) {
         await this.execute(line, { silent: true });
       }
     }
@@ -167,7 +176,7 @@ export class ShellExecutor {
     if (!trimmed) return { stdout: '', exitCode: 0 };
 
     trimmed = expandShellHistory(trimmed, this.lastCommand);
-    trimmed = expandBang(trimmed);
+    trimmed = await expandBangAsync(trimmed);
     const expanded = expandVariables(trimmed, this.env);
     const ast = parse(expanded, this.env);
     const result = await this.executeAST(ast, opts);
@@ -236,7 +245,31 @@ export class ShellExecutor {
           continue;
         }
 
-        if (lastResult.stdout && !opts?.silent) {
+        if (cmdNode.redirect) {
+          const out = stripAnsi(lastResult.stdout ?? '');
+          const target = this.vfs.resolve(cmdNode.redirect.path, this.cwd);
+          try {
+            if (cmdNode.redirect.append) {
+              let existing = '';
+              try {
+                existing = (await this.vfs.read(target)) as string;
+              } catch {
+                /* new file */
+              }
+              await this.vfs.write(target, existing + out);
+            } else {
+              await this.vfs.write(target, out);
+            }
+            if (!opts?.silent) {
+              this.options.onOutput?.('stdout', `Wrote ${out.length} byte(s) to ${target}\n`);
+            }
+            lastResult = { ...lastResult, stdout: `Wrote ${out.length} byte(s) to ${target}` };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (!opts?.silent) this.options.onOutput?.('stderr', error(msg) + '\n');
+            return { stdout: '', stderr: msg, exitCode: 1 };
+          }
+        } else if (lastResult.stdout && !opts?.silent) {
           this.options.onOutput?.('stdout', lastResult.stdout + (lastResult.stdout.endsWith('\n') ? '' : '\n'));
         }
 

@@ -204,7 +204,7 @@ describe('help categories', () => {
     await executor.initialize();
 
     const result = await executor.execute('help');
-    expect(result.stdout).toContain('v0.1.0');
+    expect(result.stdout).toContain('v1.0.0');
     expect(result.stdout).toContain('build');
   });
 });

@@ -16,11 +16,12 @@ import './styles.css';
 
 registerAllCommands();
 
-type Tab = 'appearance' | 'overlay' | 'commands' | 'vfs' | 'permissions';
+type Tab = 'appearance' | 'overlay' | 'pagekeys' | 'commands' | 'vfs' | 'permissions';
 
 const TABS: { id: Tab; label: string; icon: string; desc: string }[] = [
   { id: 'appearance', label: 'Terminal', icon: '▸', desc: 'Themes, fonts, and prompt styling' },
   { id: 'overlay', label: 'Overlay', icon: '◫', desc: 'Quake-style fullscreen overlay' },
+  { id: 'pagekeys', label: 'Page keys', icon: '⌨', desc: 'Vimium-style hotkeys on web pages' },
   { id: 'commands', label: 'Commands', icon: '⌘', desc: 'Browse and try shell commands' },
   { id: 'vfs', label: 'Filesystem', icon: '◎', desc: 'Virtual filesystem layout' },
   { id: 'permissions', label: 'Permissions', icon: '⚿', desc: 'Extension capabilities' },
@@ -69,6 +70,13 @@ function App() {
     setSaveState('saving');
     saveTimer.current = setTimeout(async () => {
       await saveConfig(next);
+      chrome.tabs.query({}).then((tabs) => {
+        for (const tab of tabs) {
+          if (!tab.id || !tab.url || /^(chrome|chrome-extension|edge|about):/.test(tab.url)) continue;
+          chrome.tabs.sendMessage(tab.id, { type: 'config-updated', config: next }).catch(() => {});
+          chrome.tabs.sendMessage(tab.id, { type: 'focus-page' }).catch(() => {});
+        }
+      });
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
     }, 450);
@@ -77,6 +85,14 @@ function App() {
   const update = <K extends keyof ShellConfig>(key: K, value: ShellConfig[K]) => {
     setConfig((c) => {
       const next = { ...c, [key]: value };
+      scheduleSave(next);
+      return next;
+    });
+  };
+
+  const updateMany = (patch: Partial<ShellConfig>) => {
+    setConfig((c) => {
+      const next = { ...c, ...patch };
       scheduleSave(next);
       return next;
     });
@@ -170,6 +186,9 @@ function App() {
                 capturingKey={capturingKey}
                 setCapturingKey={setCapturingKey}
               />
+            )}
+            {activeTab === 'pagekeys' && (
+              <PageKeysSettings config={config} update={update} updateMany={updateMany} />
             )}
             {activeTab === 'commands' && (
               <>
@@ -495,6 +514,15 @@ function AppearanceSettings({
         </div>
       </div>
 
+      <div className="card" style={{ padding: 12, background: 'rgba(255, 180, 80, 0.08)', border: '1px solid rgba(255, 180, 80, 0.2)' }}>
+        <div className="card-title" style={{ fontSize: 13 }}>Built-in editor (beta)</div>
+        <p className="card-desc" style={{ marginBottom: 0 }}>
+          The in-terminal <code>edit</code> command is early preview software — saving and typing work in simple
+          mode, but full Vim-style editing is not ready yet. Prefer external editors for important files until a
+          future release. Use arrow keys, type normally, <kbd>Ctrl+S</kbd> to save, <kbd>Esc</kbd> to exit.
+        </p>
+      </div>
+
       <div className="card">
         <div className="card-title">Prompt</div>
         <div className="setting">
@@ -563,6 +591,26 @@ function AppearanceSettings({
       </div>
     </>
   );
+}
+
+function patchRcSetting(rc: string, key: string, value: string): string {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const line = `${key} = ${value}`;
+  if (new RegExp(`^${escaped}\\s*=`, 'm').test(rc)) {
+    return rc.replace(new RegExp(`^${escaped}\\s*=.*$`, 'm'), line);
+  }
+  return `${rc.trim()}\n${line}\n`;
+}
+
+function readRcSetting(rc: string, key: string): string | undefined {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = rc.match(new RegExp(`^${escaped}\\s*=\\s*(.+)$`, 'm'));
+  if (!match) return undefined;
+  let v = match[1]!.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1);
+  }
+  return v;
 }
 
 function OverlaySettings({
@@ -705,6 +753,217 @@ function OverlaySettings({
             </div>
           </div>
         </div>
+      </div>
+    </>
+  );
+}
+
+function PageKeysSettings({
+  config,
+  update,
+  updateMany,
+}: {
+  config: ShellConfig;
+  update: <K extends keyof ShellConfig>(key: K, value: ShellConfig[K]) => void;
+  updateMany: (patch: Partial<ShellConfig>) => void;
+}) {
+  const rc = config.rc;
+  return (
+    <>
+      <div className="card">
+        <div className="card-title">Page hotkeys</div>
+        <p className="card-desc">
+          Vimium-style keys on http(s) pages when the terminal is closed. Hotkeys activate automatically on page
+          load — no extra click required. Status bar shows at the <strong>bottom</strong> during link hints so
+          markers stay visible.
+        </p>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Global hotkeys</label>
+            <span>Master switch for page keybindings</span>
+          </div>
+          <div className="setting-control">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.globalHotkeys !== false}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  updateMany({
+                    globalHotkeys: enabled,
+                    rc: patchRcSetting(rc, 'global-hotkeys', enabled ? 'true' : 'false'),
+                  });
+                }}
+              />
+              <span className="toggle-track" />
+            </label>
+          </div>
+        </div>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Insert mode auto</label>
+            <span>Pause hotkeys while typing in text fields</span>
+          </div>
+          <div className="setting-control">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={config.insertModeAuto !== false}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  updateMany({
+                    insertModeAuto: enabled,
+                    rc: patchRcSetting(rc, 'insert-mode-auto', enabled ? 'true' : 'false'),
+                  });
+                }}
+              />
+              <span className="toggle-track" />
+            </label>
+          </div>
+        </div>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Leader key</label>
+            <span>Prefix for binds like &lt;leader&gt;e</span>
+          </div>
+          <div className="setting-control">
+            <input
+              type="text"
+              value={readRcSetting(rc, 'leader') ?? config.leader ?? '<space>'}
+              onChange={(e) => {
+                const v = e.target.value.trim() || '<space>';
+                updateMany({ leader: v, rc: patchRcSetting(rc, 'leader', `"${v}"`) });
+              }}
+              style={{ width: 120, fontFamily: 'monospace' }}
+            />
+          </div>
+        </div>
+        <div className="setting" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <div className="setting-info">
+            <label>Disabled hosts</label>
+            <span>One pattern per line (e.g. mail.google.com, *.github.com)</span>
+          </div>
+          <textarea
+            rows={3}
+            spellCheck={false}
+            value={(config.globalHotkeysExceptions ?? []).join('\n')}
+            onChange={(e) => {
+              const hosts = e.target.value
+                .split(/[\n,]+/)
+                .map((h) => h.trim())
+                .filter(Boolean);
+              updateMany({
+                globalHotkeysExceptions: hosts,
+                rc: patchRcSetting(
+                  rc,
+                  'global-hotkeys-exceptions',
+                  `"${hosts.join(',')}"`,
+                ),
+              });
+            }}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+          />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Link hints</div>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Hint characters</label>
+            <span>Home-row letters for hint badges</span>
+          </div>
+          <div className="setting-control">
+            <input
+              type="text"
+              value={readRcSetting(rc, 'hint-chars') ?? 'asdfghjklqwertyuiopzxcvbnm'}
+              onChange={(e) => {
+                const chars = e.target.value.replace(/\s+/g, '') || 'asdfghjklqwertyuiopzxcvbnm';
+                update('rc', patchRcSetting(rc, 'hint-chars', `"${chars}"`));
+              }}
+              style={{ width: 280, fontFamily: 'monospace' }}
+            />
+          </div>
+        </div>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Max hints</label>
+            <span>Maximum clickable targets per page (20–500)</span>
+          </div>
+          <div className="setting-control">
+            <input
+              type="number"
+              min={20}
+              max={500}
+              step={10}
+              value={readRcSetting(rc, 'hint-max') ?? '220'}
+              onChange={(e) => {
+                const n = Math.min(500, Math.max(20, Number(e.target.value) || 220));
+                update('rc', patchRcSetting(rc, 'hint-max', String(n)));
+              }}
+              style={{ width: 80 }}
+            />
+          </div>
+        </div>
+        <div className="setting">
+          <div className="setting-info">
+            <label>Scroll step</label>
+            <span>Viewport fraction for j/k keys</span>
+          </div>
+          <div className="setting-control">
+            <input
+              type="number"
+              min={0.1}
+              max={1}
+              step={0.1}
+              value={readRcSetting(rc, 'scroll-step') ?? '0.8'}
+              onChange={(e) => {
+                const step = Math.min(1, Math.max(0.1, Number(e.target.value) || 0.8));
+                update('rc', patchRcSetting(rc, 'scroll-step', String(step)));
+              }}
+              style={{ width: 80 }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 12, background: 'rgba(255,255,255,0.03)' }}>
+        <div className="card-title" style={{ fontSize: 13 }}>Default page keys</div>
+        <table style={{ width: '100%', fontSize: 12, fontFamily: 'monospace', borderCollapse: 'collapse' }}>
+          <tbody>
+            {[
+              ['f', 'Link hints'],
+              ['F', 'Hints (new tab)'],
+              ['j / k', 'Scroll down / up'],
+              ['gg / G', 'Top / bottom'],
+              ['gi', 'Focus input'],
+              ['/ ', 'Find on page'],
+              ['yy', 'Copy URL'],
+              ['<space>e', 'Open shell (edit command)'],
+            ].map(([k, d]) => (
+              <tr key={k}>
+                <td style={{ padding: '4px 8px 4px 0', color: '#ff8a7a', width: 90 }}>{k}</td>
+                <td style={{ padding: '4px 0', opacity: 0.85 }}>{d}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Keybindings file</div>
+        <p className="card-desc">Edit binds, bangs, and aliases. Saved to <code>/config/rc</code>.</p>
+        <textarea
+          className="input-mono"
+          rows={20}
+          spellCheck={false}
+          value={config.rc}
+          onChange={(e) => update('rc', e.target.value)}
+          style={{ width: '100%', fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.45 }}
+        />
+        <span className="hint" style={{ display: 'block', marginTop: 8 }}>
+          After saving: reload extension, refresh tabs, run <code>config reload</code> in the shell.
+        </span>
       </div>
     </>
   );

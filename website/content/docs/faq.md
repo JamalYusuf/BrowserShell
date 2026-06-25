@@ -48,7 +48,7 @@ Privately, per our [Security policy](/legal/security/). Do not open public issue
 
 ### vs. Vimium / Surfingkeys / Shortkeys
 
-Those are **keyboard navigation** layers — follow links, scroll, switch tabs with keys. BrowserShell is a **full shell** with 86 commands, pipes, VFS, clickable lists, aliases, watch mode, and privacy tools.
+Those are **keyboard navigation** layers — follow links, scroll, switch tabs with keys. BrowserShell includes Vimium-style global hotkeys **plus** a full shell with 100+ commands, pipes, VFS, editor, workspaces, and privacy tools.
 
 ### vs. Chrome DevTools console
 
@@ -66,9 +66,17 @@ GUI automation tools. BrowserShell is a **text interface** — scriptable, pipea
 
 ## Usage
 
-### Do I need to learn 86 commands?
+### Do I need to learn 100+ commands?
 
 No. Start with: `tabs`, `go`, `help`, `man`. Tab completion and `search` suggest commands. `apropos` finds commands by keyword.
+
+### Page hotkeys do not work until I click the page
+
+BrowserShell focuses the page automatically on load and when you switch tabs. If keys still fail, check **Options → Page keys → Global hotkeys** is on, the host is not in **Disabled hosts**, and you are not typing in a text field (insert-mode-auto pauses hotkeys). Reload the extension after changing the rc file.
+
+### Built-in editor — not fully ready yet
+
+The `edit` command is **beta preview** software. Simple editing (arrow keys, type, **Ctrl+S** save, **Esc** exit) works for notes and config, but full Vim-style editing is **not ready yet**. Use an external editor for important files until a future release. If typing fails after customizing `edit-bind` with plain `h/j/k/l`, remove those binds — they intercept keystrokes.
 
 ### What are the essential commands?
 
@@ -121,4 +129,4 @@ Not yet. Build from source and load unpacked from `dist/` for now. Privacy polic
 
 ### What permissions does it need?
 
-Full rationale: [Permissions](/legal/permissions/). Summary: tabs, bookmarks, history, downloads, cookies, scripting, storage — each tied to specific commands you run.
+Full Chrome Web Store Q&A: [Chrome Web Store permissions](/legal/chrome-web-store-permissions/). Short summary: [Permissions](/legal/permissions/). Every permission maps to commands you explicitly run — tabs, bookmarks, history, downloads, cookies, scripting, storage, `system.display`, and `<all_urls>` for the overlay and page hotkeys.

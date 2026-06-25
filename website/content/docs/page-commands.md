@@ -11,16 +11,20 @@ Page commands run scripts in the **active tab** to read and manipulate the DOM. 
 
 ```bash
 links           # all links with href
+hints           # Vimium-style link hints (or press f on page)
 inputs          # form fields
 images          # images with src/alt
 meta            # meta tags
 read            # page text content
+seek query      # find on page from shell
 tech            # detect frameworks
 reqs            # network requests
 frames          # iframes
 viewport        # viewport dimensions
 jsonld          # structured data
 ```
+
+For keyboard-driven hints and scroll without the terminal, see [Page hotkeys](/docs/page-hotkeys/).
 
 ## Interaction
 

@@ -12,7 +12,11 @@ export type CommandCategory =
   | 'bookmarks'
   | 'history'
   | 'ai'
-  | 'utility';
+  | 'utility'
+  | 'process'
+  | 'config'
+  | 'workspace'
+  | 'page';
 
 export interface ClickableList {
   count: number;
@@ -189,6 +193,24 @@ export interface ShellConfig {
   cursorStyle: 'block' | 'underline' | 'bar';
   lineHeight: number;
   letterSpacing: number;
+  /** Leader key for multi-key bindings (default <space>) */
+  leader?: string;
+  /** Enable Vimium-style global hotkeys on pages */
+  globalHotkeys?: boolean;
+  /** Host patterns where global hotkeys are disabled */
+  globalHotkeysExceptions?: string[];
+  /** Auto-disable global hotkeys when form fields are focused */
+  insertModeAuto?: boolean;
+  /** Editor mode: vim | emacs | nano */
+  editorMode?: string;
+  /** User-defined bang shortcuts */
+  bangs?: Record<string, { url: string; description?: string }>;
+  /** Saved workspace definitions */
+  workspaces?: Record<string, import('./workspace-types').WorkspaceSnapshot>;
+  /** Parsed keybindings from rc (persisted for options page) */
+  keybindings?: { keys: string; action: string; scope: string }[];
+  /** Tracks default-rc migrations */
+  rcVersion?: number;
 }
 
 export interface ManPage {
@@ -205,7 +227,7 @@ export type ASTNode =
 export interface CommandNode {
   name: string;
   args: string[];
-  redirects?: { stdin?: string };
+  redirect?: { path: string; append: boolean };
 }
 
 export interface Token {

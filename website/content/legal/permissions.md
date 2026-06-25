@@ -6,6 +6,10 @@ weight: 20
 
 BrowserShell requests permissions to expose browser capabilities as shell commands. **No permission is used for background tracking or data exfiltration.**
 
+{{< tip >}}
+**Chrome Web Store reviewers:** see the complete Q&A for every permission — [Chrome Web Store permissions](/legal/chrome-web-store-permissions/).
+{{< /tip >}}
+
 ## Host permissions
 
 ### `<all_urls>`
@@ -30,7 +34,7 @@ List, switch, pin, discard, and navigate tabs.
 
 Restore closed windows and tabs.
 
-**Commands:** `recent`, `session`
+**Commands:** `recent`, `session`, global hotkey `X`, `workspace load`
 
 ### `bookmarks`
 
@@ -91,6 +95,12 @@ Persist configuration, aliases, history, transcript, notes, and audit log locall
 Show desktop notifications.
 
 **Commands:** `notify`
+
+### `system.display`
+
+Read monitor work areas for accurate window positioning.
+
+**Commands:** `layout`, `split`, `window position`, `workspace` (geometry restore)
 
 ---
 

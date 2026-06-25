@@ -46,6 +46,7 @@ import { zoom } from './page/zoom';
 import { scroll } from './page/scroll';
 import { volume } from './page/volume';
 import { audible } from './page/audible';
+import { hints } from './page/hints';
 import { links } from './page/links';
 import { link } from './page/link';
 import { shot } from './page/shot';
@@ -87,6 +88,15 @@ import { pin } from './tabs/pin';
 import { unpin } from './tabs/unpin';
 import { perf } from './dev/perf';
 import { permissions } from './privacy/permissions';
+import { bind, editBind } from './utility/bind';
+import { importVimiumKeys } from './utility/import-vimium-keys';
+import { touch } from './builtin/touch';
+import { rm } from './builtin/rm';
+import { bang } from './bang/bang';
+import { edit } from './edit/edit';
+import { ps } from './process/ps';
+import { kill, pkill, top, renice } from './process/kill';
+import { workspace, split, layout, workview } from './workspace/workspace';
 
 export const commandManifest: Command[] = [
   help,
@@ -98,6 +108,8 @@ export const commandManifest: Command[] = [
   cat,
   echo,
   clear,
+  touch,
+  rm,
   source,
   alias,
   exportCmd,
@@ -136,6 +148,7 @@ export const commandManifest: Command[] = [
   scroll,
   volume,
   audible,
+  hints,
   links,
   link,
   shot,
@@ -177,4 +190,18 @@ export const commandManifest: Command[] = [
   extensions,
   session,
   recent,
+  bind,
+  editBind,
+  importVimiumKeys,
+  bang,
+  edit,
+  ps,
+  top,
+  kill,
+  pkill,
+  renice,
+  workspace,
+  workview,
+  split,
+  layout,
 ];

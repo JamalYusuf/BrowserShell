@@ -15,10 +15,13 @@ const HELP_GROUPS: { label: string; names?: string[]; categories?: string[] }[] 
   { label: 'DOWNLOADS', names: ['downloads'] },
   { label: 'EXTENSIONS', names: ['extensions'] },
   { label: 'SESSIONS', names: ['session', 'sessions', 'recent'] },
-  { label: 'PAGE', names: ['link', 'links', 'input', 'inputs', 'image', 'images', 'click', 'fill', 'press', 'scroll', 'read', 'meta', 'seek', 'shot', 'pick', 'clip'] },
+  { label: 'PAGE', names: ['hints', 'link', 'links', 'input', 'inputs', 'image', 'images', 'click', 'fill', 'press', 'scroll', 'read', 'meta', 'seek', 'shot', 'pick', 'clip'] },
   { label: 'DEV TOOLS', names: ['audit', 'perf', 'tech', 'reqs', 'viewport', 'frames', 'jsonld', 'env'] },
   { label: 'AI', categories: ['ai'] },
   { label: 'UTILITY', categories: ['utility'] },
+  { label: 'CONFIG', categories: ['config'] },
+  { label: 'PROCESSES', categories: ['process'] },
+  { label: 'WORKSPACES', categories: ['workspace'] },
 ];
 
 export const help = defineCommand({
